@@ -64,7 +64,7 @@ const AboutUs = ({ onQuickDonationOpen }) => {
                 <div className="max-w-7xl mx-auto px-6 md:px-12">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
                         <div className="space-y-8">
-                            <div className="inline-flex items-center gap-3 p-4 rounded-2xl">
+                            <div className="inline-flex items-center gap-3  rounded-2xl">
                                 <FaBullseye className="w-8 h-8 text-black" />
                                 <div>
                                     <h3 className="text-xl font-bold text-black uppercase">Our Mission</h3>
@@ -95,7 +95,7 @@ const AboutUs = ({ onQuickDonationOpen }) => {
                             />
                         </div>
                         <div className="order-1 md:order-2 space-y-8">
-                            <div className="inline-flex items-center gap-3 p-4 bg-white rounded-2xl">
+                            <div className="inline-flex items-center gap-3  bg-white rounded-2xl">
                                 <FaEye className="w-8 h-8 text-black" />
                                 <div>
                                     <h3 className="text-xl font-bold text-black uppercase">Our Vision</h3>
