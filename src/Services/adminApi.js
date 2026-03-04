@@ -10,3 +10,78 @@ export const adminSendOtpApi = async (data) => {
 export const adminVerifyOtpApi = async (data) => {
     return await commonApi("POST", `${BASE_URL}/api/admin/login`, data, "");
 }
+
+// Get All Enquiries
+export const getAllEnquiriesApi = async (params = {}) => {
+    const { page = 1, limit = 10, search = "" } = params;
+    const queryString = `?page=${page}&limit=${limit}&search=${search}`;
+    return await commonApi("GET", `${BASE_URL}/api/enquiries${queryString}`, "", "");
+}
+
+// Get All Users (Admin)
+export const getAllUsersApi = async (params = {}) => {
+    const { page = 1, limit = 10, search = "" } = params;
+    const queryString = `?page=${page}&limit=${limit}&search=${search}`;
+    return await commonApi("GET", `${BASE_URL}/api/admin/users${queryString}`, "", "");
+}
+
+// Get All Active Projects (Admin)
+export const getActiveProjectsApi = async (params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/projects/active${queryString}`, "", "");
+}
+
+// Get Single Project Details (Admin) — includes projectImages + projectVideo
+export const getProjectByIdApi = async (projectId) => {
+    return await commonApi("GET", `${BASE_URL}/api/projects/${projectId}`, "", "");
+}
+
+// Create Project (Admin)
+export const createProjectApi = async (formData) => {
+    return await commonApi("PATCH", `${BASE_URL}/api/projects`, formData, { "Content-Type": "multipart/form-data" });
+}
+
+// Update Project (Admin)
+export const updateProjectApi = async (projectId, formData) => {
+    return await commonApi("PATCH", `${BASE_URL}/api/projects/${projectId}`, formData, { "Content-Type": "multipart/form-data" });
+}
+
+// Delete Project (Admin)
+export const deleteProjectApi = async (projectId) => {
+    return await commonApi("DELETE", `${BASE_URL}/api/projects/${projectId}`, null, "");
+}
+
+// Mark Project as Completed (Admin)
+export const markProjectCompleteApi = async (projectId) => {
+    return await commonApi("PATCH", `${BASE_URL}/api/projects/${projectId}/complete`, {}, "");
+}
+
+// ── Banners APIs ───────────────────────────────────────────────────
+
+// Upload New Banner (FormData: bannerImage)
+export const addBannerApi = async (formData) => {
+    return await commonApi("POST", `${BASE_URL}/api/banners`, formData, { "Content-Type": "multipart/form-data" });
+}
+
+// Get All Banners (Admin) with pagination
+export const getAllBannersApi = async (params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/banners${queryString}`, "", "");
+}
+
+// Fetch Active Banners (Public)
+export const getActiveBannersApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/banners/active`, "", "");
+}
+
+// Toggle Banner Status (Admin)
+export const toggleBannerStatusApi = async (bannerId, isActive) => {
+    return await commonApi("PATCH", `${BASE_URL}/api/banners/${bannerId}/status`, { isActive }, "");
+}
+
+// Delete Banner (Admin)
+export const deleteBannerApi = async (bannerId) => {
+    return await commonApi("DELETE", `${BASE_URL}/api/banners/${bannerId}`, null, "");
+}

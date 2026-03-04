@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     FaFacebookF,
@@ -6,8 +6,43 @@ import {
     FaInstagram,
     FaLinkedinIn
 } from 'react-icons/fa';
+import { addEnquiryApi } from '../../Services/userApi';
+import { showAlert } from '../../Utils/alert';
 
 const Footer = ({ onQuickDonationOpen }) => {
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        fullname: '',
+        email: '',
+        message: ''
+    });
+
+    const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleEnquirySubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.fullname || !formData.email || !formData.message) {
+            showAlert("Required", "All fields are required", "error");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await addEnquiryApi(formData);
+            if (result.status === 200 || result.status === 201) {
+                showAlert("Success", "Enquiry submitted successfully!", "success");
+                setFormData({ fullname: '', email: '', message: '' });
+            } else {
+                showAlert("Failed", result.response?.data?.message || "Failed to submit enquiry", "error");
+            }
+        } catch (err) {
+            showAlert("Error", "Something went wrong. Please try again.", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <footer className="bg-black text-white pt-20 pb-10 px-6 lg:px-12 font-sans border-t border-gray-800">
             <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16">
@@ -71,12 +106,15 @@ const Footer = ({ onQuickDonationOpen }) => {
                         <p className="text-gray-500 text-sm">Have questions? Send us a direct message.</p>
                     </div>
 
-                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-4" onSubmit={handleEnquirySubmit}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black uppercase tracking-widest text-gray-600 block px-1">Full Name</label>
                                 <input
                                     type="text"
+                                    name="fullname"
+                                    value={formData.fullname}
+                                    onChange={handleInputChange}
                                     placeholder="Enter your name"
                                     className="w-full bg-gray-900 border border-gray-800 rounded px-4 py-3 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-white transition-colors"
                                 />
@@ -85,6 +123,9 @@ const Footer = ({ onQuickDonationOpen }) => {
                                 <label className="text-[9px] font-black uppercase tracking-widest text-gray-600 block px-1">Email ID</label>
                                 <input
                                     type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleInputChange}
                                     placeholder="Enter your email"
                                     className="w-full bg-gray-900 border border-gray-800 rounded px-4 py-3 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-white transition-colors"
                                 />
@@ -93,13 +134,19 @@ const Footer = ({ onQuickDonationOpen }) => {
                         <div className="space-y-1">
                             <label className="text-[9px] font-black uppercase tracking-widest text-gray-600 block px-1">Message</label>
                             <textarea
+                                name="message"
+                                value={formData.message}
+                                onChange={handleInputChange}
                                 placeholder="How can we help you?"
                                 rows="3"
                                 className="w-full bg-gray-900 border border-gray-800 rounded px-4 py-3 text-sm text-white placeholder:text-gray-700 focus:outline-none focus:border-white transition-colors resize-none"
                             ></textarea>
                         </div>
-                        <button className="w-full bg-white text-black font-black py-4 rounded uppercase text-[10px] tracking-[0.2em] hover:bg-gray-200 transition-all duration-300">
-                            Initialize Enquiry
+                        <button
+                            disabled={loading}
+                            className="w-full bg-white text-black font-black py-4 rounded uppercase text-[10px] tracking-[0.2em] hover:bg-gray-200 transition-all duration-300 disabled:opacity-50"
+                        >
+                            {loading ? 'Submitting...' : 'Initialize Enquiry'}
                         </button>
                     </form>
                 </div>

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminSendOtpApi, adminVerifyOtpApi } from '../../Services/adminApi';
 import { AiOutlineUser, AiOutlineArrowRight, AiOutlineSafetyCertificate } from 'react-icons/ai';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const AdminLogin = () => {
+    const { login } = useAuth();
     const [adminData, setAdminData] = useState({
         identifier: '',
         otp: ''
@@ -15,7 +17,7 @@ const AdminLogin = () => {
     const [canResend, setCanResend] = useState(false);
     const navigate = useNavigate();
 
-    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+    const [otp, setOtp] = useState(['', '', '', '']);
 
     React.useEffect(() => {
         let timer;
@@ -48,7 +50,7 @@ const AdminLogin = () => {
             if (result.status === 200) {
                 setTimeLeft(120);
                 setCanResend(false);
-                setOtp(['', '', '', '', '', '']);
+                setOtp(['', '', '', '']);
                 setError('');
             } else {
                 setError(result.response?.data?.message || 'Failed to resend OTP');
@@ -74,7 +76,7 @@ const AdminLogin = () => {
         setError('');
 
         // Move focus to next input
-        if (value && index < 5) {
+        if (value && index < 3) {
             const nextInput = document.getElementById(`otp-${index + 1}`);
             nextInput?.focus();
         }
@@ -89,15 +91,15 @@ const AdminLogin = () => {
 
     const handlePaste = (e) => {
         e.preventDefault();
-        const pasteData = e.clipboardData.getData('text').slice(0, 6).split('');
+        const pasteData = e.clipboardData.getData('text').slice(0, 4).split('');
         if (pasteData.every(char => /^\d$/.test(char))) {
             const newOtp = [...otp];
             pasteData.forEach((char, i) => {
-                if (i < 6) newOtp[i] = char;
+                if (i < 4) newOtp[i] = char;
             });
             setOtp(newOtp);
             // Focus last filled or next empty
-            const lastIndex = Math.min(pasteData.length, 5);
+            const lastIndex = Math.min(pasteData.length - 1, 3);
             document.getElementById(`otp-${lastIndex}`)?.focus();
         }
     };
@@ -130,16 +132,20 @@ const AdminLogin = () => {
         } else {
             // Step 2: Verify OTP
             const otpValue = otp.join('');
-            if (otpValue.length < 6) {
-                setError('Please enter the complete 6-digit OTP');
+            if (otpValue.length < 4) {
+                setError('Please enter the complete 4-digit OTP');
                 return;
             }
             setLoading(true);
             try {
                 const result = await adminVerifyOtpApi({ ...payload, otp: otpValue });
                 if (result.status === 200) {
-                    sessionStorage.setItem("token", result.data.token);
-                    sessionStorage.setItem("admin", JSON.stringify(result.data.admin));
+                    const { accessToken, refreshToken, user } = result.data.data;
+                    const tokens = {
+                        accessToken: accessToken,
+                        refreshToken: refreshToken || ""
+                    };
+                    login(user, tokens);
                     navigate('/admin');
                 } else {
                     setError(result.response?.data?.message || 'Invalid OTP');
@@ -239,7 +245,7 @@ const AdminLogin = () => {
                                 <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                     <div className="flex items-center justify-between px-1">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                            6-Digit Secure Code
+                                            4-Digit Secure Code
                                         </label>
                                         <button
                                             type="button"
@@ -249,7 +255,7 @@ const AdminLogin = () => {
                                             Change email / phone
                                         </button>
                                     </div>
-                                    <div className="flex justify-between gap-2">
+                                    <div className="flex justify-center gap-4">
                                         {otp.map((digit, index) => (
                                             <input
                                                 key={index}

@@ -2,23 +2,39 @@ import React, { useState, useEffect } from 'react';
 import StatsSection from './StatsSection';
 import FeaturedCampaigns from './FeaturedCampaigns';
 import CompletedProjects from './CompletedProjects';
+import { getActiveBannersApi } from '../../Services/adminApi';
+
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80";
 
 function LandingPage({ onQuickDonationOpen }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
-  const heroImages = [
-    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    "https://images.unsplash.com/photo-1593113598332-cd288d649433?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-    "https://images.unsplash.com/photo-1635315619159-a61626a57c8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
-  ];
+  const [banners, setBanners] = useState([]);
 
   useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await getActiveBannersApi();
+        if (response?.data?.banners?.length) {
+          setBanners(response.data.banners);
+        } else if (response?.data?.data?.length) {
+          setBanners(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch banners for landing page:', error);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+
     const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % heroImages.length);
-    }, 2000);
+      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % banners.length);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [heroImages.length]);
+  }, [banners.length]);
 
   return (
     <div className="min-h-screen font-sans">
@@ -26,21 +42,32 @@ function LandingPage({ onQuickDonationOpen }) {
       <div className="relative w-full h-[600px] md:h-[700px] bg-black overflow-hidden">
         {/* Background Image Carousel */}
         <div className="absolute inset-0">
-          {heroImages.map((image, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-all duration-1000 ease-in-out transform ${index === currentImageIndex
-                ? 'opacity-100 scale-100'
-                : 'opacity-0 scale-110'
-                }`}
-            >
+          {banners.length > 0 ? (
+            banners.map((banner, index) => (
+              <div
+                key={banner._id || banner.id || index}
+                className={`absolute inset-0 transition-all duration-1000 ease-in-out transform ${index === currentImageIndex
+                  ? 'opacity-100 scale-100'
+                  : 'opacity-0 scale-110'
+                  }`}
+              >
+                <img
+                  src={banner.imageUrl || banner.url}
+                  alt={`Hero background ${index + 1}`}
+                  className="object-cover w-full h-full opacity-50"
+                  onError={e => { e.target.src = FALLBACK_IMAGE; }}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="absolute inset-0 transition-all duration-1000 ease-in-out transform opacity-100 scale-100">
               <img
-                src={image}
-                alt={`Hero background ${index + 1}`}
+                src={FALLBACK_IMAGE}
+                alt={`Hero background fallback`}
                 className="object-cover w-full h-full opacity-50"
               />
             </div>
-          ))}
+          )}
           <div className="absolute inset-0 bg-linear-to-r from-gray-900 via-black/10 to-transparent"></div>
         </div>
 
