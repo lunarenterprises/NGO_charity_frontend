@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 import { IoClose } from 'react-icons/io5';
 import { FaHeart } from 'react-icons/fa';
@@ -6,6 +7,7 @@ import { createQuickDonationOrderApi, verifyQuickDonationPaymentApi } from '../.
 import { showToast } from '../../Utils/alert';
 
 const QuickDonationModal = ({ onClose }) => {
+    const navigate = useNavigate();
     const [amount, setAmount] = useState('');
     const [donorName, setDonorName] = useState('');
     const [donorEmail, setDonorEmail] = useState('');
@@ -56,7 +58,7 @@ const QuickDonationModal = ({ onClose }) => {
                 key: import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_SNRWFVH0MOhtgj",
                 amount: orderData.amount, // amount in paise
                 currency: "INR",
-                name: "NGO Donation",
+                name: "Yashfi Foundation Donation",
                 description: "Quick Donation",
                 order_id: orderData.id,
                 handler: async function (response) {
@@ -73,8 +75,14 @@ const QuickDonationModal = ({ onClose }) => {
                             donorPhone
                         });
 
-                        showToast("success", "Payment successful! Thank you for your support.");
                         onClose();
+                        navigate('/payment-success', {
+                            state: {
+                                amount: parseFloat(amount),
+                                transactionId: response.razorpay_payment_id,
+                                orderId: response.razorpay_order_id
+                            }
+                        });
                     } catch (error) {
                         console.error("Payment verification failed", error);
                         showToast("error", "Payment verification failed.");

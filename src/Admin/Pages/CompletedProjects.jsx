@@ -93,7 +93,7 @@ const CompletedProjects = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-black tracking-tight">Completed Projects</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Archive of successfully funded and completed NGO initiatives.
+                        Archive of successfully funded and completed Yashfi Foundation initiatives.
                         {!loading && meta.total > 0 && (
                             <span className="ml-2 text-xs font-black uppercase tracking-widest text-gray-400">
                                 ({meta.total} total)

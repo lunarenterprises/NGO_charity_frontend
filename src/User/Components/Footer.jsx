@@ -51,7 +51,7 @@ const Footer = ({ onQuickDonationOpen }) => {
                 <div className="lg:col-span-4 space-y-8">
                     <div className="space-y-4">
                         <Link to="/" className="text-3xl font-black tracking-tighter uppercase italic block">
-                            NGO <span className="text-gray-500">Charity</span>
+                            Yashfi  <span className="text-gray-500">Foundation</span>
                         </Link>
                         <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
                             Building a sustainable future through transparent action and community empowerment. Every contribution creates waves of change.

@@ -5,6 +5,7 @@ import ProjectDetails from './User/Pages/ProjectDetails'
 import ActiveProjects from './User/Pages/ActiveProjects'
 import CompletedProjectsListing from './User/Pages/CompletedProjectsListing'
 import AboutUs from './User/Pages/AboutUs'
+import PaymentSuccess from './User/Pages/PaymentSuccess'
 import { Routes, Route } from 'react-router-dom'
 import UserLayout from './User/Layout/UserLayout'
 import AdminLayout from './Admin/Layout/AdminLayout'
@@ -36,6 +37,7 @@ function App() {
           <Route path="/completed-projects" element={<CompletedProjectsListing />} />
           <Route path="/about-us" element={<AboutUs onQuickDonationOpen={() => setIsQuickDonationOpen(true)} />} />
           <Route path="/project/:id" element={<ProjectDetails />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
         </Route>
 
         {/* Admin Routes - Protected */}

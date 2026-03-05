@@ -28,7 +28,7 @@ const AboutUs = ({ onQuickDonationOpen }) => {
             icon: <FaUsers className="w-6 h-6" />,
             title: "Collaboration",
             description: "We work hand-in-hand with local partners, donors, and volunteers to maximize our collective impact.",
-            hoverBg: "hover:bg-indigo-600"
+            hoverBg: "hover:bg-amber-400"
         }
     ];
 
@@ -54,7 +54,7 @@ const AboutUs = ({ onQuickDonationOpen }) => {
                         <span className="text-gray-400">a brighter tomorrow.</span>
                     </h1>
                     <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-300 leading-relaxed font-medium">
-                        HopeConnect is a global community of change-makers dedicated to tackling the most pressing challenges of our time through innovation and empathy.
+                        Yashfi Foundation is a global community of change-makers dedicated to tackling the most pressing challenges of our time through innovation and empathy.
                     </p>
                 </div>
             </section>
@@ -164,7 +164,7 @@ const AboutUs = ({ onQuickDonationOpen }) => {
                             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">From a small spark to a global movement.</h2>
                             <div className="space-y-6 text-lg text-gray-400 font-medium leading-relaxed">
                                 <p>
-                                    Founded in 2012 by Sarah Johnson, HopeConnect began as a local initiative in a small community center. Our first project was simply providing school supplies to local children.
+                                    Founded in 2012 by Sarah Johnson, Yashfi Foundation began as a local initiative in a small community center. Our first project was simply providing school supplies to local children.
                                 </p>
                                 <p>
                                     Today, we operate in 12 countries, impacting over 100,000 lives annually. Our journey has been defined by the thousands of volunteers and donors who shared our vision of a better world.

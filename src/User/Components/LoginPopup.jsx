@@ -236,7 +236,7 @@ const LoginPopup = ({ onClose }) => {
                         </h2>
                         <p className="mt-1 text-sm text-gray-500 font-medium px-4">
                             {isLogin
-                                ? (otpSent ? "Enter the 6-digit code sent to your device" : 'Sign in using Email or Phone Number')
+                                ? (otpSent ? "Enter the 4-digit code sent to your device" : 'Sign in using Email or Phone Number')
                                 : 'Become a part of our community and help create lasting change'}
                         </p>
                     </div>
@@ -362,7 +362,7 @@ const LoginPopup = ({ onClose }) => {
 
                     <div className="mt-5 text-center text-sm">
                         <p className="text-gray-500 font-medium">
-                            {isLogin ? "New to HopeConnect?" : "Already a supporter?"}
+                            {isLogin ? "New to Yashfi Foundation?" : "Already a supporter?"}
                             <button
                                 onClick={toggleMode}
                                 className="font-bold text-black hover:underline ml-1"

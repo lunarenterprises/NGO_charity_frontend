@@ -62,7 +62,7 @@ const Navbar = ({ onQuickDonationOpen }) => {
                             />
                         </svg>
                     </div>
-                    <span className="text-xl font-bold text-black tracking-tight">HopeConnect</span>
+                    <span className="text-xl font-bold text-black tracking-tight">Yashfi Foundation</span>
                 </div>
 
                 {/* Desktop Links */}
