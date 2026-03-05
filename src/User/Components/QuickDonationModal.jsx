@@ -53,7 +53,7 @@ const QuickDonationModal = ({ onClose }) => {
 
             // 2. Initialize Razorpay
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_yourKeyHere",
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_SNRWFVH0MOhtgj",
                 amount: orderData.amount, // amount in paise
                 currency: "INR",
                 name: "NGO Donation",

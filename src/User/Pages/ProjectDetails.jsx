@@ -157,7 +157,7 @@ const ProjectDetails = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                     {/* Left Column: Details */}
                     <div className="lg:col-span-2">
                         <span className="inline-block bg-gray-100 text-black px-4 py-1.5 rounded-full text-sm font-medium mb-4">
@@ -167,18 +167,11 @@ const ProjectDetails = () => {
                         <p className="text-gray-600 text-lg leading-relaxed mb-8 whitespace-pre-wrap">
                             {summary}
                         </p>
-
-                        <div className="bg-white p-6 rounded-xl border border-gray-100">
-                            <h3 className="text-xl font-bold mb-4">About this Project</h3>
-                            <p className="text-gray-600 whitespace-pre-wrap">
-                                {description}
-                            </p>
-                        </div>
                     </div>
 
                     {/* Right Column: Donation Card */}
                     <div className="lg:col-span-1">
-                        <div className="bg-white px-8 py-5 rounded-2xl shadow-lg sticky top-24 border border-gray-100">
+                        <div className="bg-white px-8 py-5 rounded-2xl  sticky top-24 border-2 border-gray-300">
                             <div className="mb-6">
                                 <div className="flex justify-between items-end mb-2">
                                     <span className="text-3xl font-bold text-black">{raisedFormatted}</span>
@@ -200,6 +193,14 @@ const ProjectDetails = () => {
                                 All donations are tax-deductible.
                             </p>
                         </div>
+                    </div>
+                </div>
+
+                {/* Bottom Row: Description Section */}
+                <div className="sm:pt-0 pt-10">
+                    <h3 className="text-2xl font-bold mb-3 text-black">About this Project</h3>
+                    <div className="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">
+                        {description}
                     </div>
                 </div>
             </div>
