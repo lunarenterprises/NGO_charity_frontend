@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProjectDetailsApi } from '../../Services/userApi';
 import { HiOutlinePlay } from 'react-icons/hi';
+import ProjectDonationModal from '../Components/ProjectDonationModal';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80';
 
@@ -11,6 +12,7 @@ const ProjectDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeMedia, setActiveMedia] = useState(null);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchProjectDetails = async () => {
@@ -185,7 +187,10 @@ const ProjectDetails = () => {
                                 </div>
                             </div>
 
-                            <button className="w-full py-3 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-900 transition-colors shadow-lg mb-4">
+                            <button
+                                onClick={() => setIsDonationModalOpen(true)}
+                                className="w-full py-3 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-900 transition-colors shadow-lg mb-4"
+                            >
                                 Donate Now
                             </button>
 
@@ -204,6 +209,12 @@ const ProjectDetails = () => {
                     </div>
                 </div>
             </div>
+
+            <ProjectDonationModal
+                isOpen={isDonationModalOpen}
+                onClose={() => setIsDonationModalOpen(false)}
+                project={project}
+            />
         </div>
     );
 };

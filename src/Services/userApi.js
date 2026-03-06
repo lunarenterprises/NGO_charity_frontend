@@ -45,7 +45,34 @@ export const verifyQuickDonationPaymentApi = async (data) => {
     return await commonApi("POST", `${BASE_URL}/api/donations/quick/verify`, data, "");
 }
 
+// Create Project Donation Order
+export const createProjectDonationOrderApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/donations/project/order`, data, "");
+}
+
+// Verify Project Donation Payment
+export const verifyProjectDonationPaymentApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/donations/project/verify`, data, "");
+}
+
 // Get Project Details by ID
 export const getProjectDetailsApi = async (id) => {
     return await commonApi("GET", `${BASE_URL}/api/projects/${id}`, "", "");
+}
+
+// Get Current User Profile
+export const getUserProfileApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/user/me`, "", "");
+}
+
+// Get Current User Donations
+export const getUserDonationsApi = async (params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/donations/my${queryString}`, "", "");
+}
+
+// Update Current User Profile
+export const updateUserProfileApi = async (data) => {
+    return await commonApi("PUT", `${BASE_URL}/api/user/me`, data, "");
 }

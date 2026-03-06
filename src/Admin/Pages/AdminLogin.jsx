@@ -142,8 +142,8 @@ const AdminLogin = () => {
                 if (result.status === 200) {
                     const { accessToken, refreshToken, user } = result.data.data;
                     const tokens = {
-                        accessToken: accessToken,
-                        refreshToken: refreshToken || ""
+                        accessToken,
+                        refreshToken
                     };
                     login(user, tokens);
                     navigate('/admin');
