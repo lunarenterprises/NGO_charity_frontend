@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     HiOutlineHeart,
     HiOutlineCash,
     HiOutlineUserGroup,
-    HiOutlineTrendingUp
+    HiOutlineTrendingUp,
+    HiOutlineLightningBolt,
+    HiOutlineUserAdd
 } from 'react-icons/hi';
+import { getAllDonationsApi, getDashboardStatsApi } from '../../Services/adminApi';
 
 const StatCard = ({ title, value, icon, color }) => (
     <div className="bg-white p-5 border border-gray-100 rounded-lg shadow-sm hover:border-black transition-all group">
@@ -21,11 +24,70 @@ const StatCard = ({ title, value, icon, color }) => (
 );
 
 const AdminDashboard = () => {
+    const [recentDonations, setRecentDonations] = useState([]);
+    const [loadingDonations, setLoadingDonations] = useState(true);
+
+    // Dashboard Stats State
+    const [dashboardStats, setDashboardStats] = useState(null);
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    useEffect(() => {
+        fetchRecentDonations();
+        fetchDashboardStats();
+    }, []);
+
+    const fetchRecentDonations = async () => {
+        try {
+            setLoadingDonations(true);
+            const result = await getAllDonationsApi({ page: 1, limit: 5 });
+
+            if (result.status === 200 && result.data) {
+                const responseData = result.data;
+                if (responseData.success || responseData.result) {
+                    setRecentDonations(responseData.data || []);
+                }
+            } else {
+                const status = result.response?.status || result.status;
+                if (status === 401) {
+                    setTimeout(() => fetchRecentDonations(), 1000);
+                }
+            }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setTimeout(() => fetchRecentDonations(), 1000);
+            }
+            console.error("Error fetching recent donations:", err);
+        } finally {
+            setLoadingDonations(false);
+        }
+    };
+    const fetchDashboardStats = async () => {
+        try {
+            setLoadingStats(true);
+            const result = await getDashboardStatsApi();
+            if (result.status === 200 && result.data && result.data.data) {
+                setDashboardStats(result.data.data);
+            } else {
+                const status = result.response?.status || result.status;
+                if (status === 401) {
+                    setTimeout(() => fetchDashboardStats(), 1000);
+                }
+            }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setTimeout(() => fetchDashboardStats(), 1000);
+            }
+            console.error("Error fetching dashboard stats:", err);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
     const stats = [
-        { title: 'Total Projects', value: '12', icon: <HiOutlineHeart /> },
-        { title: 'Total Donations', value: '$45,230', icon: <HiOutlineCash /> },
-        { title: 'Active Donors', value: '1,284', icon: <HiOutlineUserGroup /> },
-        { title: 'Goal Reach Rate', value: '84%', icon: <HiOutlineTrendingUp /> },
+        { title: 'Total Projects', value: dashboardStats?.totalProjects || '0', icon: <HiOutlineHeart /> },
+        { title: 'Total Donations', value: `₹${(dashboardStats?.totalDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineCash /> },
+        { title: 'Registered Users', value: (dashboardStats?.totalUsers || 0).toLocaleString(), icon: <HiOutlineUserGroup /> },
+        { title: 'Project Donations', value: `₹${(dashboardStats?.totalProjectDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineTrendingUp /> },
     ];
 
     return (
@@ -44,63 +106,69 @@ const AdminDashboard = () => {
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Recent Activity */}
-                <div className="lg:col-span-2 bg-white p-6 border shadow-sm border-gray-100 rounded-lg">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-sm font-bold text-black uppercase tracking-tight">Recent Projects</h3>
-                        <Link to="/admin/active-projects" className="text-xs font-bold text-gray-400 hover:text-black uppercase tracking-widest">View All</Link>
-                    </div>
-                    <div className="space-y-2">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-md">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-white border border-gray-200 rounded flex items-center justify-center font-bold text-xs">P{i}</div>
-                                    <div>
-                                        <h4 className="text-sm font-bold text-black">Clean Water Initiative #{i}</h4>
-                                        <p className="text-[10px] text-gray-400 uppercase font-medium">Updated 2h ago</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-bold text-black">$2,400</p>
-                                    <p className="text-[10px] text-teal-600 font-bold uppercase">Active</p>
-                                </div>
-                            </div>
-                        ))}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {/* New Stat Cards Row */}
+                <div className="lg:col-span-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-max">
+                        <StatCard
+                            title="Quick Donations Today"
+                            value={loadingStats ? "..." : `₹${(dashboardStats?.totalQuickDonationsToday || 0).toLocaleString('en-IN')}`}
+                            icon={<HiOutlineLightningBolt />}
+                        />
+                        <StatCard
+                            title="New Users Today"
+                            value={loadingStats ? "..." : (dashboardStats?.newUsersToday || 0).toLocaleString()}
+                            icon={<HiOutlineUserAdd />}
+                        />
                     </div>
                 </div>
 
                 {/* Recent Donations */}
-                <div className="bg-white p-6 border border-gray-100 rounded-lg shadow-sm">
+                <div className="lg:col-span-2 bg-white p-6 border border-gray-100 rounded-lg shadow-sm">
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="text-sm font-bold text-black uppercase tracking-tight">Recent Donations</h3>
-                        <button className="text-[10px] font-bold text-gray-400 hover:text-black uppercase tracking-widest">History</button>
+                        <Link to="/admin/recent-transactions" className="text-[10px] font-bold text-gray-400 hover:text-black uppercase tracking-widest">History</Link>
                     </div>
-                    <div className="">
-                        {[
-                            { name: 'Arjun Das', email: 'arjun@example.com', project: 'Clean Water', amount: '$50' },
-                            { name: 'Meera K', email: 'meera@web.in', project: 'Quick', amount: '$120' },
-                            { name: 'Rahul S', email: 'rahul.s@gmail.com', project: 'Education Aid', amount: '$200' },
-                            { name: 'Sarah J', email: 'sarah.j@outlook.com', project: 'Quick', amount: '$45' }
-                        ].map((donation, idx) => (
-                            <div key={idx} className="flex flex-col gap-0.5 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="text-sm font-bold text-black">{donation.name}</h4>
-                                    <span className="text-xs font-bold text-black">{donation.amount}</span>
-                                </div>
-                                <p className="text-[10px] text-gray-500 font-medium">{donation.email}</p>
-                                <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${donation.project === 'Quick' ? 'bg-gray-100 text-gray-600' : 'bg-black text-white'
-                                        }`}>
-                                        {donation.project}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <button className="w-full mt-6 py-3 bg-black text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-gray-800 transition-colors">
-                        View All Donations
-                    </button>
+
+                    {loadingDonations ? (
+                        <div className="flex flex-col items-center py-10">
+                            <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin mb-2"></div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loading...</p>
+                        </div>
+                    ) : recentDonations.length === 0 ? (
+                        <div className="text-center py-10 bg-gray-50 rounded-lg">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">No recent donations</p>
+                        </div>
+                    ) : (
+                        <div className="">
+                            {recentDonations.map((donation, idx) => {
+                                const projectName = donation.Project ? (donation.Project.name || donation.Project.title) : (donation.project ? (donation.project.name || donation.project.title) : 'Quick');
+                                const donorName = donation.donorName || donation.name || donation.User?.fullname || donation.user?.fullname || 'Anonymous';
+                                const donorEmail = donation.donorEmail || donation.email || donation.User?.email || donation.user?.email || 'N/A';
+
+                                return (
+                                    <div key={donation.id || donation._id || idx} className="flex flex-col gap-0.5 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="text-sm font-bold text-black">{donorName}</h4>
+                                            <span className="text-xs font-bold text-black">₹{Number(donation.amount || 0).toLocaleString('en-IN')}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 font-medium">{donorEmail}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${(!donation.Project && !donation.project) ? 'bg-gray-100 text-gray-600' : 'bg-black text-white'}`}>
+                                                {projectName}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    <Link to="/admin/recent-transactions">
+                        <button className="w-full mt-6 py-3 bg-black text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-gray-800 transition-colors">
+                            View All Donations
+                        </button>
+                    </Link>
                 </div>
             </div>
         </div>

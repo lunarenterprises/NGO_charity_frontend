@@ -7,9 +7,11 @@ import {
     HiOutlinePlay,
     HiX,
     HiOutlineCloudUpload,
-    HiOutlinePlus
+    HiOutlinePlus,
+    HiOutlineChevronLeft,
+    HiOutlineChevronRight
 } from 'react-icons/hi';
-import { getProjectByIdApi, deleteProjectApi, markProjectCompleteApi, updateProjectApi } from '../../Services/adminApi';
+import { getProjectByIdApi, deleteProjectApi, markProjectCompleteApi, updateProjectApi, getProjectDonationsApi } from '../../Services/adminApi';
 import { showToast, showConfirm } from '../../Utils/alert';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80';
@@ -27,6 +29,13 @@ const AdminProjectDetails = () => {
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeMedia, setActiveMedia] = useState(null);
+
+    // ── Donations State ──────────────────────────────────────────────
+    const [donors, setDonors] = useState([]);
+    const [loadingDonors, setLoadingDonors] = useState(true);
+    const [donorPage, setDonorPage] = useState(1);
+    const [donorTotalPages, setDonorTotalPages] = useState(1);
+    const [donorTotalRecords, setDonorTotalRecords] = useState(0);
 
     // ── Edit Modal State ─────────────────────────────────────────────
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -67,6 +76,50 @@ const AdminProjectDetails = () => {
     useEffect(() => {
         fetchProject();
     }, [fetchProject]);
+
+    // ── Fetch project donations ──────────────────────────────────────
+    const fetchProjectDonations = React.useCallback(async () => {
+        setLoadingDonors(true);
+        try {
+            const result = await getProjectDonationsApi(id, { page: donorPage, limit: 10 });
+            if (result.status === 200 && result.data) {
+                const responseData = result.data;
+                if (responseData.success || responseData.result) {
+                    const data = responseData.data || [];
+                    setDonors(data);
+
+                    if (responseData.meta) {
+                        setDonorTotalPages(responseData.meta.totalPages || 1);
+                        setDonorTotalRecords(responseData.meta.total || data.length);
+                    } else if (responseData.pagination) {
+                        setDonorTotalPages(responseData.pagination.totalPages || 1);
+                        setDonorTotalRecords(responseData.pagination.total || data.length);
+                    } else {
+                        setDonorTotalPages(data.length < 10 ? donorPage : donorPage + 1);
+                        setDonorTotalRecords(data.length);
+                    }
+                } else {
+                    setDonors([]);
+                }
+            } else {
+                const status = result.response?.status || result.status;
+                if (status === 401) {
+                    setTimeout(() => fetchProjectDonations(), 1000);
+                }
+            }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setTimeout(() => fetchProjectDonations(), 1000);
+            }
+            console.error('Fetch project donations error:', err);
+        } finally {
+            setLoadingDonors(false);
+        }
+    }, [id, donorPage]);
+
+    useEffect(() => {
+        fetchProjectDonations();
+    }, [fetchProjectDonations]);
 
     // ── Scroll to anchor ─────────────────────────────────────────────
     useEffect(() => {
@@ -258,14 +311,7 @@ const AdminProjectDetails = () => {
         }
     };
 
-    // ── Mock donors (replace with real API when available) ────────────
-    const donors = [
-        { id: 1, name: 'Ananya Sharma', email: 'ananya.s@example.com', phone: '+91 98765 43210', date: 'Feb 15, 2026', amount: '₹25,000' },
-        { id: 2, name: 'Rahul Verma', email: 'rahul.v@example.com', phone: '+91 87654 32109', date: 'Feb 14, 2026', amount: '₹10,000' },
-        { id: 3, name: 'Priya Patel', email: 'priya.p@example.com', phone: '+91 76543 21098', date: 'Feb 12, 2026', amount: '₹50,000' },
-        { id: 4, name: 'Amit Singh', email: 'amit.s@example.com', phone: '+91 65432 10987', date: 'Feb 10, 2026', amount: '₹15,000' },
-        { id: 5, name: 'Sneha Reddy', email: 'sneha.r@example.com', phone: '+91 54321 09876', date: 'Feb 08, 2026', amount: '₹5,000' },
-    ];
+    // ── Donors Data Managed via API ───────────────────────────────────
 
     // ── Render ────────────────────────────────────────────────────────
     return (
@@ -466,40 +512,86 @@ const AdminProjectDetails = () => {
             <div id="recent-contributions" className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
                 <div className="p-6 border-b border-gray-100 bg-black flex justify-between items-center">
                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Recent Contributions</h2>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{donors.length} Donors</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{donorTotalRecords || donors.length} Donors</span>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Donor Name</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Email</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Phone</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black text-center">Date</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {donors.map((donor) => (
-                                <tr key={donor.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-bold text-black group-hover:underline underline-offset-4 decoration-gray-300">{donor.name}</p>
-                                    </td>
-                                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{donor.email}</td>
-                                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{donor.phone}</td>
-                                    <td className="px-6 py-4 text-xs text-gray-500 font-medium text-center">{donor.date}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <span className="text-sm font-black text-black bg-gray-100 px-3 py-1 rounded-md">{donor.amount}</span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {donors.length === 0 && (
-                    <div className="p-20 text-center bg-gray-50/30">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 italic">No recorded project contributions.</p>
+
+                {loadingDonors ? (
+                    <div className="flex flex-col items-center justify-center p-20 space-y-4">
+                        <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm font-bold text-black uppercase tracking-widest">Loading Contributions...</p>
                     </div>
+                ) : donors.length === 0 ? (
+                    <div className="p-20 text-center bg-gray-50/30 border-t border-gray-100">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">No recorded project contributions yet.</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100">
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Donor Name</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Email</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black">Phone</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black text-center">Date</th>
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-black text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {donors.map((donor) => {
+                                        const donorName = donor.donorName || donor.name || donor.User?.fullname || donor.user?.fullname || 'Anonymous';
+                                        const donorEmail = donor.donorEmail || donor.email || donor.User?.email || donor.user?.email || 'N/A';
+                                        const donorPhone = donor.donorPhone || donor.phone || donor.User?.phone || donor.user?.phone || 'N/A';
+                                        const date = donor.createdAt ? new Date(donor.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+                                        const amount = Number(donor.amount || 0).toLocaleString('en-IN');
+
+                                        return (
+                                            <tr key={donor._id || donor.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <p className="text-sm font-bold text-black group-hover:underline underline-offset-4 decoration-gray-300">{donorName}</p>
+                                                        <span className="text-[9px] font-bold text-gray-400 uppercase">
+                                                            ID: {(donor.razorpayPaymentId || donor.paymentId || donor._id || donor.id)?.toString().substring(0, 15)}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-xs text-gray-500 font-medium">{donorEmail}</td>
+                                                <td className="px-6 py-4 text-xs text-gray-500 font-medium">{donorPhone}</td>
+                                                <td className="px-6 py-4 text-xs text-gray-500 font-medium text-center">{date}</td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className="text-sm font-black text-black bg-gray-100 px-3 py-1 rounded-md">₹{amount}</span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        {/* Pagination Controls */}
+                        {donorTotalPages > 1 && (
+                            <div className="p-6 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                                    Page <span className="text-black">{donorPage}</span> of <span className="text-black">{donorTotalPages}</span>
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setDonorPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={donorPage === 1}
+                                        className="p-2 border border-gray-200 rounded-lg hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                    >
+                                        <HiOutlineChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        onClick={() => setDonorPage(prev => Math.min(prev + 1, donorTotalPages))}
+                                        disabled={donorPage === donorTotalPages}
+                                        className="p-2 border border-gray-200 rounded-lg hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                    >
+                                        <HiOutlineChevronRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 

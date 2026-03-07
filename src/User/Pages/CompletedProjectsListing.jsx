@@ -135,8 +135,8 @@ const CompletedProjectsListing = () => {
                                                 </svg>
                                             </div>
                                             <div>
-                                                <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Amount Raised</div>
-                                                <div className="text-sm font-bold text-black">₹{parseFloat(project.currentAmount || 0).toLocaleString('en-IN')}</div>
+                                                <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Target Amount</div>
+                                                <div className="text-sm font-bold text-black">₹{parseFloat(project.targetAmount || 0).toLocaleString('en-IN')}</div>
                                             </div>
                                         </div>
                                         <button

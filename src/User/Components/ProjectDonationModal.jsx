@@ -61,8 +61,16 @@ const ProjectDonationModal = ({ isOpen, onClose, project }) => {
             }
 
             // 2. Initialize Razorpay
+            if (!window.Razorpay) {
+                showToast("error", "Razorpay SDK failed to load. Please check your connection.");
+                setIsLoading(false);
+                return;
+            }
+
+            const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_SNRWFVH0MOhtgj";
+
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_SNRWFVH0MOhtgj",
+                key: razorpayKey,
                 amount: orderData.amount, // amount in paise
                 currency: "INR",
                 name: "Yashfi Foundation",
@@ -106,12 +114,18 @@ const ProjectDonationModal = ({ isOpen, onClose, project }) => {
                 },
                 theme: {
                     color: "#000000"
+                },
+                modal: {
+                    ondismiss: function () {
+                        setIsLoading(false);
+                    }
                 }
             };
 
             const rzp = new window.Razorpay(options);
             rzp.on('payment.failed', function (response) {
-                showToast("error", "Payment Failed. Try again.");
+                console.error("Project Payment failed", response.error);
+                showToast("error", response.error.description || "Payment Failed. Try again.");
                 setIsLoading(false);
             });
             rzp.open();

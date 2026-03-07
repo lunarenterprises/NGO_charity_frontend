@@ -65,7 +65,7 @@ const FeaturedCampaigns = () => {
                     <h2 className="text-3xl md:text-4xl font-bold text-black mt-4 mb-4">
                         Active Projects
                     </h2>
-                    <p className="text-gray-600 max-w-2xl mx-auto">
+                    <p className="text-gray-600 max-w-3xl mx-auto">
                         Support causes that matter. Every donation, big or small, brings hope to those in need.
                     </p>
                 </div>

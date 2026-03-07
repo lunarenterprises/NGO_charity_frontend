@@ -85,3 +85,30 @@ export const toggleBannerStatusApi = async (bannerId, isActive) => {
 export const deleteBannerApi = async (bannerId) => {
     return await commonApi("DELETE", `${BASE_URL}/api/banners/${bannerId}`, null, "");
 }
+
+// Get All Donations (Admin)
+export const getAllDonationsApi = async (params = {}) => {
+    const { page = 1, limit = 10, search = "" } = params;
+    let queryString = `?page=${page}&limit=${limit}`;
+    if (search) queryString += `&search=${search}`;
+    return await commonApi("GET", `${BASE_URL}/api/donations/all${queryString}`, "", "");
+}
+
+// Get Project Donations (Admin)
+export const getProjectDonationsApi = async (projectId, params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/donations/project/${projectId}${queryString}`, "", "");
+}
+
+// Get User Donations (Admin)
+export const getUserDonationsAdminApi = async (userId, params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/donations/user/${userId}${queryString}`, "", "");
+}
+
+// Get Dashboard Stats (Admin)
+export const getDashboardStatsApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/admin/dashboard-stats`, "", "");
+}

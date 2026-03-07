@@ -117,12 +117,12 @@ const CompletedProjects = () => {
 
                                     <div className="pt-4 border-t border-gray-200 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                                            <div className="w-8 h-8 rounded-full bg-gray-100 border flex items-center justify-center shrink-0">
                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-black">
                                                     <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
                                                 </svg>
                                             </div>
-                                            <span className="text-sm font-bold text-black">₹{parseFloat(project.currentAmount || 0).toLocaleString('en-IN')} Raised</span>
+                                            <span className="text-sm font-bold text-black ">₹{parseFloat(project.targetAmount || 0).toLocaleString('en-IN')} Target</span>
                                         </div>
                                         <button
                                             onClick={() => navigate(`/project/${project._id || project.id}`)}

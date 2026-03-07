@@ -149,8 +149,8 @@ const CompletedProjects = () => {
                                         </div>
                                         <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-teal-500 transition-all duration-700 ease-out shadow-sm"
-                                                style={{ width: `${progress}%` }}
+                                                className="h-full bg-teal-500 shadow-sm"
+                                                style={{ width: `100%` }}
                                             />
                                         </div>
                                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">

@@ -3,6 +3,7 @@ import StatsSection from './StatsSection';
 import FeaturedCampaigns from './FeaturedCampaigns';
 import CompletedProjects from './CompletedProjects';
 import { getActiveBannersApi } from '../../Services/adminApi';
+import { Link } from 'react-router-dom';
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80";
 
@@ -105,12 +106,15 @@ function LandingPage({ onQuickDonationOpen }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
             </button>
-            <button className="flex items-center justify-center gap-2 px-8 py-3 font-semibold text-white transition border border-gray-400 rounded-lg hover:bg-white/10">
-              View Projects
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </button>
+            <Link to="/active-projects" >
+              <button className="flex items-center justify-center gap-2 px-8 py-3 font-semibold text-white transition border border-gray-400 rounded-lg hover:bg-white/10">
+                View Projects
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
+            </Link>
+
           </div>
         </div>
       </div>

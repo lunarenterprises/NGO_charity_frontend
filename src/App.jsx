@@ -22,12 +22,14 @@ import Enquiries from './Admin/Pages/Enquiries'
 import AdminLogin from './Admin/Pages/AdminLogin'
 import AdminProtectedRoute from './Admin/Layout/AdminProtectedRoute'
 import { AuthProvider } from './Contexts/AuthContext'
+import ScrollToTop from './Components/ScrollToTop'
 
 function App() {
   const [isQuickDonationOpen, setIsQuickDonationOpen] = useState(false)
 
   return (
     <AuthProvider>
+      <ScrollToTop />
       <Routes>
         {/* Admin Login - Separate from layout */}
         <Route path="/admin/login" element={<AdminLogin />} />

@@ -162,7 +162,7 @@ const ProjectDetails = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
                     {/* Left Column: Details */}
                     <div className="lg:col-span-2">
-                        <span className="inline-block bg-gray-100 text-black px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                        <span className="inline-block bg-gray-100 border text-black px-4 py-1.5 rounded-full text-sm font-medium mb-4">
                             {pillText}
                         </span>
                         <h1 className="text-4xl font-bold text-black mb-6">{title}</h1>
@@ -176,26 +176,38 @@ const ProjectDetails = () => {
                         <div className="bg-white px-8 py-5 rounded-2xl  sticky top-24 border-2 border-gray-300">
                             <div className="mb-6">
                                 <div className="flex justify-between items-end mb-2">
-                                    <span className="text-3xl font-bold text-black">{raisedFormatted}</span>
-                                    <span className="text-gray-500 mb-1">raised of {targetFormatted}</span>
+                                    <span className="text-3xl font-bold text-black">
+                                        {project.status === 'completed' ? 'Completed' : raisedFormatted}
+                                    </span>
+                                    <span className="text-gray-500 mb-1">
+                                        {project.status === 'completed' ? `Target: ${targetFormatted}` : `raised of ${targetFormatted}`}
+                                    </span>
                                 </div>
                                 <div className="w-full bg-gray-100 rounded-full h-3">
                                     <div
-                                        className="bg-black h-3 rounded-full transition-all duration-1000"
-                                        style={{ width: `${progressPercent}%` }}
+                                        className={`bg-black h-3 rounded-full ${project.status !== 'completed' ? 'transition-all duration-1000' : ''}`}
+                                        style={{ width: project.status === 'completed' ? '100%' : `${progressPercent}%` }}
                                     ></div>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => setIsDonationModalOpen(true)}
-                                className="w-full py-3 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-900 transition-colors shadow-lg mb-4"
-                            >
-                                Donate Now
-                            </button>
+                            {project.status !== 'completed' ? (
+                                <button
+                                    onClick={() => setIsDonationModalOpen(true)}
+                                    className="w-full py-3 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-900 transition-colors shadow-lg mb-4"
+                                >
+                                    Donate Now
+                                </button>
+                            ) : (
+                                <div className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl font-bold text-lg text-center mb-4 border border-gray-200">
+                                    Goal Reached
+                                </div>
+                            )}
 
                             <p className="text-center text-sm text-gray-500">
-                                All donations are tax-deductible.
+                                {project.status === 'completed'
+                                    ? "This project has been successfully funded."
+                                    : "All donations are tax-deductible."}
                             </p>
                         </div>
                     </div>

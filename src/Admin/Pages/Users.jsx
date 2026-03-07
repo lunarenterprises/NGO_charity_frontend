@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { HiOutlineArrowLeft, HiOutlineSearch, HiOutlineEye, HiX, HiOutlineCash, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
-import { getAllUsersApi } from '../../Services/adminApi';
+import { getAllUsersApi, getUserDonationsAdminApi } from '../../Services/adminApi';
 
 const Users = () => {
     const [users, setUsers] = useState([]);
@@ -11,6 +11,13 @@ const Users = () => {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // User Transactions State
+    const [userTransactions, setUserTransactions] = useState([]);
+    const [loadingTxns, setLoadingTxns] = useState(false);
+    const [txnPage, setTxnPage] = useState(1);
+    const [txnTotalPages, setTxnTotalPages] = useState(1);
+    const [txnTotalRecords, setTxnTotalRecords] = useState(0);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -32,6 +39,7 @@ const Users = () => {
 
     const fetchUsers = async () => {
         setLoading(true);
+        setError(null);
         try {
             const params = {
                 page: currentPage,
@@ -39,6 +47,8 @@ const Users = () => {
                 search: debouncedSearch
             };
             const result = await getAllUsersApi(params);
+
+            // If the interceptor is handling a token refresh, result might be the retried response
             if (result.status === 200) {
                 // Adjust based on the expected response structure
                 const responseData = result.data.data || result.data;
@@ -53,22 +63,80 @@ const Users = () => {
                     setUsers([]);
                 }
             } else {
+                // Don't treat 401 as a page-level error — the interceptor handles token refresh
+                const status = result.response?.status || result.status;
+                if (status === 401) {
+                    // Token refresh is being handled by the interceptor, just retry after a short delay
+                    setTimeout(() => fetchUsers(), 1000);
+                    return;
+                }
                 setError(result.response?.data?.message || "Failed to fetch users");
             }
         } catch (err) {
+            // Don't treat 401 as a fatal error — the interceptor will handle refresh
+            if (err.response?.status === 401) {
+                setTimeout(() => fetchUsers(), 1000);
+                return;
+            }
             setError("Something went wrong while fetching users");
         } finally {
             setLoading(false);
         }
     };
 
-    // Mock data for user transactions (staying for now as user only asked for Users API)
-    const userTransactions = {
-        // ... (existing mock transactions)
+    // Fetch User Transactions when modal is open
+    useEffect(() => {
+        if (isModalOpen && selectedUser) {
+            fetchUserTransactions();
+        }
+    }, [isModalOpen, selectedUser, txnPage]);
+
+    const fetchUserTransactions = async () => {
+        setLoadingTxns(true);
+        try {
+            const userId = selectedUser._id || selectedUser.id;
+            const result = await getUserDonationsAdminApi(userId, { page: txnPage, limit: 10 });
+
+            if (result.status === 200 && result.data) {
+                const responseData = result.data;
+                if (responseData.success || responseData.result) {
+                    const data = responseData.data || [];
+                    setUserTransactions(data);
+
+                    if (responseData.meta) {
+                        setTxnTotalPages(responseData.meta.totalPages || 1);
+                        setTxnTotalRecords(responseData.meta.total || data.length);
+                    } else if (responseData.pagination) {
+                        setTxnTotalPages(responseData.pagination.totalPages || 1);
+                        setTxnTotalRecords(responseData.pagination.total || data.length);
+                    } else {
+                        setTxnTotalPages(data.length < 10 ? txnPage : txnPage + 1);
+                        setTxnTotalRecords(data.length);
+                    }
+                } else {
+                    setUserTransactions([]);
+                }
+            } else {
+                const status = result.response?.status || result.status;
+                if (status === 401) {
+                    setTimeout(() => fetchUserTransactions(), 1000);
+                }
+            }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                setTimeout(() => fetchUserTransactions(), 1000);
+            }
+            console.error('Fetch user transactions error:', err);
+        } finally {
+            setLoadingTxns(false);
+        }
     };
 
     const handleViewTransactions = (user) => {
         setSelectedUser(user);
+        setTxnPage(1); // Reset page on open
+        setUserTransactions([]); // Clear previous to show loading state
+        setTxnTotalRecords(0);
         setIsModalOpen(true);
     };
 
@@ -230,13 +298,13 @@ const Users = () => {
                                         <div className="flex flex-col">
                                             <span className="text-[10px] font-black uppercase text-gray-500">Total Donated</span>
                                             <span className="text-lg font-black text-white">
-                                                ₹{(userTransactions[selectedUser._id || selectedUser.id] || []).reduce((acc, curr) => acc + parseInt(curr.amount.replace(/[₹,]/g, '')), 0).toLocaleString('en-IN')}
+                                                ₹{userTransactions.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toLocaleString('en-IN')}
                                             </span>
                                         </div>
                                         <div className="w-px h-8 bg-gray-400 self-end"></div>
                                         <div className="flex flex-col">
                                             <span className="text-[10px] font-black uppercase text-gray-500">Impact Count</span>
-                                            <span className="text-lg font-black text-white">{(userTransactions[selectedUser._id || selectedUser.id] || []).length}</span>
+                                            <span className="text-lg font-black text-white">{txnTotalRecords || userTransactions.length}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -244,40 +312,80 @@ const Users = () => {
                         </div>
 
                         {/* Modal Content - Activity Timeline */}
-                        <div className="p-8 bg-white">
+                        <div className="p-8 bg-white flex flex-col max-h-[60vh]">
                             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-6">Contribution Timeline</h3>
-                            <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-4 custom-scrollbar">
-                                {(userTransactions[selectedUser._id || selectedUser.id] || []).map((txn, idx) => (
-                                    <div key={idx} className="flex gap-4 group">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center font-black text-black text-xs group-hover:bg-black group-hover:text-white transition-colors">
-                                                <HiOutlineCash className="w-4 h-4" />
-                                            </div>
-                                            {idx !== (userTransactions[selectedUser._id || selectedUser.id].length - 1) && (
-                                                <div className="w-px h-full bg-gray-100 mt-2"></div>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 pb-6">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className="text-sm font-bold text-black">{txn.type}</h4>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">{txn.date}</p>
-                                                </div>
-                                                <span className="text-sm font-black text-black bg-gray-50 px-3 py-1 rounded-md border border-gray-100">{txn.amount}</span>
-                                            </div>
-                                            <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Transaction Ref: {txn.id}</p>
-                                        </div>
-                                    </div>
-                                ))}
 
-                                {(!userTransactions[selectedUser._id || selectedUser.id] || userTransactions[selectedUser._id || selectedUser.id].length === 0) && (
-                                    <div className="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic px-6">
-                                            This user hasn't made any recorded contributions yet.
-                                        </p>
+                            {loadingTxns ? (
+                                <div className="flex flex-col items-center justify-center p-10 space-y-4">
+                                    <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Loading...</p>
+                                </div>
+                            ) : userTransactions.length === 0 ? (
+                                <div className="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 italic px-6">
+                                        This user hasn't made any recorded contributions yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="space-y-6 overflow-y-auto pr-4 custom-scrollbar flex-1 mb-4">
+                                        {userTransactions.map((txn, idx) => {
+                                            const projectName = txn.Project ? (txn.Project.name || txn.Project.title) : (txn.project ? (txn.project.name || txn.project.title) : 'General Donation');
+                                            const date = txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+                                            const amount = Number(txn.amount || 0).toLocaleString('en-IN');
+                                            const txnId = (txn.razorpayPaymentId || txn.paymentId || txn._id || txn.id)?.toString().substring(0, 15);
+
+                                            return (
+                                                <div key={txn._id || txn.id || idx} className="flex gap-4 group">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="w-8 h-8 bg-gray-50 border border-gray-100 rounded-lg flex items-center justify-center font-black text-black text-xs group-hover:bg-black group-hover:text-white transition-colors">
+                                                            <HiOutlineCash className="w-4 h-4" />
+                                                        </div>
+                                                        {idx !== (userTransactions.length - 1) && (
+                                                            <div className="w-px h-full bg-gray-100 mt-2"></div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 pb-6">
+                                                        <div className="flex justify-between items-start">
+                                                            <div>
+                                                                <h4 className="text-sm font-bold text-black">{projectName}</h4>
+                                                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5 tracking-widest">{date}</p>
+                                                            </div>
+                                                            <span className="text-sm font-black text-black bg-gray-50 px-3 py-1 rounded-md border border-gray-100">₹{amount}</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">Transaction Ref: {txnId}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                )}
-                            </div>
+
+                                    {/* Modal Pagination */}
+                                    {txnTotalPages > 1 && (
+                                        <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                                Page <span className="text-black">{txnPage}</span> of <span className="text-black">{txnTotalPages}</span>
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => setTxnPage(prev => Math.max(prev - 1, 1))}
+                                                    disabled={txnPage === 1}
+                                                    className="p-1.5 border border-gray-200 rounded-lg hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                                >
+                                                    <HiOutlineChevronLeft className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => setTxnPage(prev => Math.min(prev + 1, txnTotalPages))}
+                                                    disabled={txnPage === txnTotalPages}
+                                                    className="p-1.5 border border-gray-200 rounded-lg hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                                                >
+                                                    <HiOutlineChevronRight className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
