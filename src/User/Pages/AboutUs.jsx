@@ -1,9 +1,12 @@
 import React from 'react';
-import { FaBullseye, FaEye, FaHeart, FaUsers, FaGlobe, FaSeedling } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { FaBullseye, FaEye, FaHeart, FaUsers, FaGlobe, FaSeedling, FaCalendarAlt, FaChartLine, FaShieldAlt, FaSyncAlt } from 'react-icons/fa';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const AboutUs = ({ onQuickDonationOpen }) => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+    const { onRequireLogin } = useOutletContext() || {};
 
     const values = [
         {
@@ -191,6 +194,85 @@ const AboutUs = ({ onQuickDonationOpen }) => {
             </section>
 
 
+
+            {/* Monthly Donation Section */}
+            <section className="py-24 bg-gray-100 overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6 md:px-12">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+                        <div className="max-w-2xl">
+                            <span className="text-black font-bold uppercase tracking-[0.2em] text-sm mb-4 block">Give Regularly</span>
+                            <h2 className="text-4xl md:text-6xl font-bold text-black tracking-tight leading-none">Monthly <br />Donations.</h2>
+                        </div>
+                        <p className="text-gray-500 max-w-sm font-medium text-lg leading-relaxed">
+                            A small, consistent commitment from you creates a stable foundation for communities in need — every single month.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        {/* Description */}
+                        <div className="space-y-6 text-gray-600 text-lg leading-relaxed font-medium">
+                            <p>
+                                Monthly donations are the cornerstone of sustainable impact. When you commit to giving regularly, you provide our team with the predictability to plan long-term programs, hire dedicated staff, and reach more people without the uncertainty of one-time funding cycles.
+                            </p>
+                            <p>
+                                Your recurring contribution — no matter the size — directly powers ongoing education initiatives, healthcare outreach, and food security projects across communities that depend on consistent support throughout the year.
+                            </p>
+                            <p>
+                                As a monthly donor, you become a true partner in our mission. You'll receive exclusive impact reports, behind-the-scenes updates, and the knowledge that your generosity is working around the clock, every day of the year.
+                            </p>
+                        </div>
+
+                        {/* Benefits cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            {[
+                                {
+                                    icon: <FaCalendarAlt className="w-6 h-6" />,
+                                    title: "Consistent Impact",
+                                    desc: "Your monthly gift ensures uninterrupted support for projects that rely on steady funding."
+                                },
+                                {
+                                    icon: <FaChartLine className="w-6 h-6" />,
+                                    title: "Smarter Planning",
+                                    desc: "Predictable income allows us to allocate resources efficiently and launch new programs with confidence."
+                                },
+                                {
+                                    icon: <FaShieldAlt className="w-6 h-6" />,
+                                    title: "Donor Protection",
+                                    desc: "Your contributions are handled with full transparency, security, and accountability every step of the way."
+                                },
+                                {
+                                    icon: <FaSyncAlt className="w-6 h-6" />,
+                                    title: "Effortless Giving",
+                                    desc: "Set it once and your contribution works for communities every month without any extra effort."
+                                }
+                            ].map((item, i) => (
+                                <div key={i} className="group bg-white border-6 border-gray-200 rounded-4xl p-8 hover:bg-black hover:border-black transition-all duration-500  hover:shadow-xl">
+                                    <div className="w-12 h-12 mb-3 bg-black text-white rounded-2xl flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all duration-500">
+                                        {item.icon}
+                                    </div>
+                                    <h4 className="text-lg font-bold text-black group-hover:text-white mb-1 transition-colors duration-500">{item.title}</h4>
+                                    <p className="text-gray-500 text-sm leading-relaxed font-medium group-hover:text-gray-400 transition-colors duration-500">{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-14 flex justify-center">
+                        <button
+                            onClick={() => {
+                                if (isAuthenticated) {
+                                    navigate('/monthly-donation');
+                                } else {
+                                    onRequireLogin();
+                                }
+                            }}
+                            className="px-10 py-5 bg-black text-white font-bold rounded-2xl hover:bg-gray-900 transition-all transform hover:-translate-y-1 shadow-xl shadow-black/10"
+                        >
+                            Become a Monthly Donor
+                        </button>
+                    </div>
+                </div>
+            </section>
 
             {/* CTA Section */}
             <section className="py-24 px-6">

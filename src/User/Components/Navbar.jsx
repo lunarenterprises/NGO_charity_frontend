@@ -340,12 +340,15 @@ const Navbar = ({ onQuickDonationOpen }) => {
                     </div>
                 </div>
             )}
-            {/* Popups */}
             {isLoginPopupOpen && <LoginPopup onClose={() => setIsLoginPopupOpen(false)} />}
             {isDonationModalOpen && (
                 <DonationTypeModal
                     onClose={() => setIsDonationModalOpen(false)}
                     onQuickDonation={onQuickDonationOpen}
+                    onRequireLogin={() => {
+                        setIsDonationModalOpen(false);
+                        setIsLoginPopupOpen(true);
+                    }}
                 />
             )}
         </nav>

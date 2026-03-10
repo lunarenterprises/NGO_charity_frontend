@@ -8,7 +8,7 @@ import {
     HiOutlineLightningBolt,
     HiOutlineUserAdd
 } from 'react-icons/hi';
-import { getAllDonationsApi, getDashboardStatsApi } from '../../Services/adminApi';
+import { getAllDonationsApi, getDashboardStatsApi, getActiveProjectsApi } from '../../Services/adminApi';
 
 const StatCard = ({ title, value, icon, color }) => (
     <div className="bg-white p-5 border border-gray-100 rounded-lg shadow-sm hover:border-black transition-all group">
@@ -29,6 +29,7 @@ const AdminDashboard = () => {
 
     // Dashboard Stats State
     const [dashboardStats, setDashboardStats] = useState(null);
+    const [activeProjectsCount, setActiveProjectsCount] = useState(0);
     const [loadingStats, setLoadingStats] = useState(true);
 
     useEffect(() => {
@@ -39,7 +40,7 @@ const AdminDashboard = () => {
     const fetchRecentDonations = async () => {
         try {
             setLoadingDonations(true);
-            const result = await getAllDonationsApi({ page: 1, limit: 5 });
+            const result = await getAllDonationsApi({ page: 1, limit: 4 });
 
             if (result.status === 200 && result.data) {
                 const responseData = result.data;
@@ -64,15 +65,24 @@ const AdminDashboard = () => {
     const fetchDashboardStats = async () => {
         try {
             setLoadingStats(true);
-            const result = await getDashboardStatsApi();
-            if (result.status === 200 && result.data && result.data.data) {
-                setDashboardStats(result.data.data);
-            } else {
-                const status = result.response?.status || result.status;
-                if (status === 401) {
-                    setTimeout(() => fetchDashboardStats(), 1000);
-                }
+            const [statsResult, projectsResult] = await Promise.all([
+                getDashboardStatsApi(),
+                getActiveProjectsApi({ page: 1, limit: 1 })
+            ]);
+
+            if (statsResult.status === 200 && statsResult.data && statsResult.data.data) {
+                setDashboardStats(statsResult.data.data);
+            } else if (statsResult.response?.status === 401) {
+                setTimeout(() => fetchDashboardStats(), 1000);
+                return;
             }
+
+            if (projectsResult.status === 200 && projectsResult.data) {
+                const pData = projectsResult.data;
+                const count = pData.meta?.total || pData.pagination?.total || pData.data?.length || pData.projects?.length || 0;
+                setActiveProjectsCount(count);
+            }
+
         } catch (err) {
             if (err.response?.status === 401) {
                 setTimeout(() => fetchDashboardStats(), 1000);
@@ -84,10 +94,10 @@ const AdminDashboard = () => {
     };
 
     const stats = [
-        { title: 'Total Projects', value: dashboardStats?.totalProjects || '0', icon: <HiOutlineHeart /> },
-        { title: 'Total Donations', value: `₹${(dashboardStats?.totalDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineCash /> },
-        { title: 'Registered Users', value: (dashboardStats?.totalUsers || 0).toLocaleString(), icon: <HiOutlineUserGroup /> },
-        { title: 'Project Donations', value: `₹${(dashboardStats?.totalProjectDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineTrendingUp /> },
+        { title: 'Active Projects', value: dashboardStats?.activeProjects || dashboardStats?.totalActiveProjects || activeProjectsCount.toString(), icon: <HiOutlineHeart /> },
+        { title: 'Donations Today', value: `₹${(dashboardStats?.todaysTotalDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineCash /> },
+        { title: 'Quick Donations Today', value: `₹${(dashboardStats?.totalQuickDonationsToday || 0).toLocaleString('en-IN')}`, icon: <HiOutlineLightningBolt /> },
+        { title: 'Project Donations Today', value: `₹${(dashboardStats?.totalProjectDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineTrendingUp /> },
     ];
 
     return (
@@ -111,9 +121,9 @@ const AdminDashboard = () => {
                 <div className="lg:col-span-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-max">
                         <StatCard
-                            title="Quick Donations Today"
-                            value={loadingStats ? "..." : `₹${(dashboardStats?.totalQuickDonationsToday || 0).toLocaleString('en-IN')}`}
-                            icon={<HiOutlineLightningBolt />}
+                            title="Registered Users"
+                            value={loadingStats ? "..." : (dashboardStats?.totalUsers || 0).toLocaleString()}
+                            icon={<HiOutlineUserGroup />}
                         />
                         <StatCard
                             title="New Users Today"

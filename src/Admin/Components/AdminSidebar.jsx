@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
     HiOutlineViewGrid,
     HiOutlineHeart,
@@ -12,8 +12,26 @@ import {
     HiOutlineQuestionMarkCircle,
     HiX
 } from 'react-icons/hi';
+import { useAuth } from '../../Contexts/AuthContext';
+import { showConfirm } from '../../Utils/alert';
 
 const AdminSidebar = ({ isOpen, onClose }) => {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSignOut = async () => {
+        const result = await showConfirm(
+            "Ready to leave?",
+            "Are you sure you want to sign out of the Admin Portal?"
+        );
+
+        if (result.isConfirmed) {
+            logout();
+            localStorage.clear();
+            navigate('/admin/login');
+        }
+    };
+
     const menuItems = [
         { title: 'Dashboard', path: '/admin', icon: <HiOutlineViewGrid className="w-5 h-5" /> },
         { title: 'Active Projects', path: '/admin/active-projects', icon: <HiOutlineHeart className="w-5 h-5" /> },
@@ -71,7 +89,10 @@ const AdminSidebar = ({ isOpen, onClose }) => {
 
                     {/* Footer */}
                     <div className="p-4 border-t border-gray-900">
-                        <button className="flex items-center w-full px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-900 rounded-md transition-colors">
+                        <button
+                            onClick={handleSignOut}
+                            className="flex items-center w-full px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-900 rounded-md transition-colors"
+                        >
                             <HiOutlineLogout className="w-5 h-5" />
                             <span className="ml-3">Sign Out</span>
                         </button>

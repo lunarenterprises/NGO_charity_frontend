@@ -36,7 +36,7 @@ const QuickDonationSuccess = ({ amount, transactionId }) => {
                                 It will go directly toward supporting our active projects and communities in need.
                             </p>
                             <p className="text-sm opacity-80">
-Every contribution helps us build and create opportunities for thousands of people.Your act of kindness sparks hope and drives lasting change
+                                Every contribution helps us build and create opportunities for thousands of people.Your act of kindness sparks hope and drives lasting change
                             </p>
                         </div>
 

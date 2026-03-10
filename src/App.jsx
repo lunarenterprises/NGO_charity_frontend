@@ -8,6 +8,7 @@ import AboutUs from './User/Pages/AboutUs'
 import PaymentSuccess from './User/Pages/PaymentSuccess'
 import Profile from './User/Pages/Profile'
 import Transactions from './User/Pages/Transactions'
+import MonthlyDonation from './User/Pages/MonthlyDonation'
 import { Routes, Route } from 'react-router-dom'
 import UserLayout from './User/Layout/UserLayout'
 import AdminLayout from './Admin/Layout/AdminLayout'
@@ -44,6 +45,7 @@ function App() {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/transactions" element={<Transactions />} />
+          <Route path="/monthly-donation" element={<MonthlyDonation onQuickDonationOpen={() => setIsQuickDonationOpen(true)} />} />
         </Route>
 
         {/* Admin Routes - Protected */}

@@ -76,3 +76,18 @@ export const getUserDonationsApi = async (params = {}) => {
 export const updateUserProfileApi = async (data) => {
     return await commonApi("PUT", `${BASE_URL}/api/user/me`, data, "");
 }
+
+// Create Monthly Donation Order
+export const createMonthlyDonationOrderApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/monthly-donor/order`, data, "");
+}
+
+// Verify Monthly Donation Payment
+export const verifyMonthlyDonationPaymentApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/monthly-donor/verify`, data, "");
+}
+
+// Get Monthly Donor Status
+export const getMonthlyDonorStatusApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/monthly-donor/my-status`, "", "");
+}

@@ -1,12 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { IoClose } from 'react-icons/io5';
-import { FaHeart, FaHandsHelping } from 'react-icons/fa';
+import { FaHeart, FaHandsHelping, FaCalendarAlt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../Contexts/AuthContext';
 
-const DonationTypeModal = ({ onClose, onQuickDonation }) => {
+const DonationTypeModal = ({ onClose, onQuickDonation, onRequireLogin }) => {
     const navigate = useNavigate();
     const portalRoot = document.body;
+    const { isAuthenticated } = useAuth();
 
     const options = [
         {
@@ -27,6 +29,20 @@ const DonationTypeModal = ({ onClose, onQuickDonation }) => {
             action: () => {
                 onClose();
                 navigate('/active-projects');
+            }
+        },
+        {
+            id: 'monthly',
+            title: 'Monthly Donation',
+            description: 'Become a recurring donor and provide steady support for our long-term initiatives.',
+            icon: <FaCalendarAlt className="w-6 h-6" />,
+            action: () => {
+                onClose();
+                if (isAuthenticated) {
+                    navigate('/monthly-donation');
+                } else {
+                    onRequireLogin();
+                }
             }
         }
     ];
@@ -51,7 +67,7 @@ const DonationTypeModal = ({ onClose, onQuickDonation }) => {
                         <p className="mt-2 text-gray-500 font-medium">Choose a donation method that suits you best</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {options.map((option) => (
                             <button
                                 key={option.id}
