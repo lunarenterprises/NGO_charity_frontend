@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaChartLine, FaShieldAlt, FaSyncAlt, FaCheckCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import instance from '../../Services/instance';
-import { createMonthlyDonationOrderApi, verifyMonthlyDonationPaymentApi, getMonthlyDonorStatusApi } from '../../Services/userApi';
+import { createMonthlyDonationOrderApi, verifyMonthlyDonationPaymentApi, getMonthlyDonorStatusApi, createBulkMonthlyDonationOrderApi, verifyBulkMonthlyDonationPaymentApi, enrollAsMonthlyDonorApi } from '../../Services/userApi';
 import { showToast } from '../../Utils/alert';
 
 const FIXED_AMOUNT = 1000;
@@ -74,7 +74,7 @@ const MonthlyDonation = () => {
         setLoading(true);
         setError('');
         try {
-            await instance.post('/api/monthly-donor/enroll');
+            await enrollAsMonthlyDonorApi();
             setSubmitted(true);
             showToast('success', 'Successfully enrolled as a Monthly Donor!');
         } catch (err) {
@@ -85,13 +85,24 @@ const MonthlyDonation = () => {
         }
     };
 
-    const handlePayment = async () => {
+    const handlePayment = async (amount, isBulk = false, selectedMonths = []) => {
+        const amountToPay = amount || FIXED_AMOUNT;
+
         setLoading(true);
         setError('');
         try {
             // 1. Create Order
-            const orderRes = await createMonthlyDonationOrderApi({ amount: FIXED_AMOUNT });
-            const orderData = orderRes.data?.data || orderRes.data?.order || orderRes.data;
+            const orderPayload = isBulk ? {} : {
+                month: selectedMonths[0]?.month,
+                year: selectedMonths[0]?.year
+            };
+
+            const orderRes = isBulk
+                ? await createBulkMonthlyDonationOrderApi(orderPayload)
+                : await createMonthlyDonationOrderApi(orderPayload);
+
+            const rawData = orderRes.data?.data || orderRes.data;
+            const orderData = rawData?.order || rawData;
 
             if (!orderData || !orderData.id) {
                 showToast("error", "Failed to create order. Please try again.");
@@ -106,7 +117,7 @@ const MonthlyDonation = () => {
                 return;
             }
 
-            const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || orderData.keyId || "rzp_test_SNRWFVH0MOhtgj";
+            const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || rawData?.keyId || orderData?.keyId || "rzp_test_SNRWFVH0MOhtgj";
 
             // Get user info for prefill
             const storedUser = localStorage.getItem('user');
@@ -125,25 +136,38 @@ const MonthlyDonation = () => {
                 amount: orderData.amount, // amount in paise
                 currency: "INR",
                 name: "Yashfi Foundation",
-                description: donorStatus ? "Monthly Contribution" : "First Month Contribution",
+                description: isBulk ? "Bulk Monthly Contribution" : (donorStatus ? "Monthly Contribution" : "First Month Contribution"),
                 order_id: orderData.id,
                 handler: async function (response) {
                     try {
                         setLoading(true);
                         // 3. Verify Payment
-                        await verifyMonthlyDonationPaymentApi({
+                        const verifyPayload = isBulk ? {
                             razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
                             razorpay_signature: response.razorpay_signature,
-                            amount: FIXED_AMOUNT
-                        });
+                            pendingMonths: selectedMonths
+                        } : {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            month: selectedMonths[0]?.month,
+                            year: selectedMonths[0]?.year
+                        };
+
+                        if (isBulk) {
+                            await verifyBulkMonthlyDonationPaymentApi(verifyPayload);
+                        } else {
+                            await verifyMonthlyDonationPaymentApi(verifyPayload);
+                        }
 
                         navigate('/payment-success', {
                             state: {
-                                amount: FIXED_AMOUNT,
+                                amount: amountToPay,
                                 transactionId: response.razorpay_payment_id,
                                 orderId: response.razorpay_order_id,
-                                projectTitle: "Monthly Donation"
+                                projectTitle: isBulk ? "Bulk Monthly Donation" : "Monthly Donation",
+                                isMonthly: true
                             }
                         });
                     } catch (error) {
@@ -272,72 +296,116 @@ const MonthlyDonation = () => {
 
                             {submitted ? (
                                 <div className="relative z-10 flex flex-col items-center justify-center py-16 text-center gap-6">
-                                    {donorStatus && donorStatus.paidThisMonth ? (
-                                        <>
-                                            <div className="flex items-center justify-center w-20 h-20 bg-green-500 rounded-full shadow-lg shadow-black/10">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    strokeWidth={2}
-                                                    stroke="currentColor"
-                                                    className="w-10 h-10 text-white"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                                                    />
-                                                </svg>
-                                            </div>
-                                            <h3 className="text-3xl font-bold text-white">All Caught Up!</h3>
-                                            <p className="text-gray-400 font-medium max-w-xs">
-                                                Thank you for your continued support this month.
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg shadow-black/10">
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                    strokeWidth={2}
-                                                    stroke="currentColor"
-                                                    className="w-10 h-10 text-black"
-                                                >
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                                                    />
-                                                </svg>
-                                            </div>
-                                            <h3 className="text-3xl font-bold text-white">
-                                                {donorStatus ? "Pending Payment" : "Thank You!"}
-                                            </h3>
-                                            <p className="text-gray-400 font-medium max-w-xs">
-                                                {donorStatus
-                                                    ? `Your contribution for this month is pending.`
-                                                    : `Your monthly donor profile has been set up successfully.`}
-                                            </p>
-                                            {error && (
-                                                <p className="text-red-400 text-sm font-medium text-center mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-                                                    {error}
+                                    {(() => {
+                                        const pendingMonths = donorStatus?.monthlyHistory?.filter(item =>
+                                            !(item.status === 'paid' || item.status === 'success' || (item.donation && item.donation.paymentStatus === 'success'))
+                                        ) || [];
+                                        const hasPending = pendingMonths.length > 0;
+                                        const isCompletelyCaughtUp = donorStatus && !hasPending;
+
+                                        const now = new Date();
+                                        const isCurrentMonthPending = pendingMonths.some(item =>
+                                            item.month === (now.getMonth() + 1) && item.year === now.getFullYear()
+                                        );
+                                        const totalPendingAmount = FIXED_AMOUNT * (pendingMonths.length || 1);
+
+                                        if (isCompletelyCaughtUp) {
+                                            return (
+                                                <>
+                                                    <div className="flex items-center justify-center w-20 h-20 bg-green-500 rounded-full shadow-lg shadow-black/10">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            strokeWidth={2}
+                                                            stroke="currentColor"
+                                                            className="w-10 h-10 text-white"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <h3 className="text-3xl font-bold text-white">All Caught Up!</h3>
+                                                    <p className="text-gray-400 font-medium max-w-xs">
+                                                        Thank you for your incredible consistency. All your monthly contributions are up to date!
+                                                    </p>
+                                                </>
+                                            );
+                                        }
+
+                                        return (
+                                            <>
+                                                <div className="flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg shadow-black/10">
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        strokeWidth={2}
+                                                        stroke="currentColor"
+                                                        className="w-10 h-10 text-black"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="text-3xl font-bold text-white">
+                                                    {pendingMonths.length > 1 ? "Pending Payments" : "Pending Payment"}
+                                                </h3>
+                                                <p className="text-gray-400 font-medium max-w-xs">
+                                                    {donorStatus
+                                                        ? (pendingMonths.length > 1
+                                                            ? `You have ${pendingMonths.length} months of contributions pending.`
+                                                            : `Your contribution for this month is pending.`)
+                                                        : `Your monthly donor profile has been set up successfully.`}
                                                 </p>
-                                            )}
-                                            <div className="flex flex-col items-center gap-2 mt-4">
-                                                <button
-                                                    onClick={handlePayment}
-                                                    disabled={loading}
-                                                    className="px-8 py-4 bg-white text-black font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-xl hover:-translate-y-1 w-full sm:w-auto disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0"
-                                                >
-                                                    {loading ? 'Processing...' : donorStatus ? "Pay This Month's Contribution" : "Pay First Month's Contribution"}
-                                                </button>
-                                                <p className="text-gray-500 text-xs font-medium">Proceed to pay your ₹{FIXED_AMOUNT}</p>
-                                            </div>
-                                        </>
-                                    )}
+                                                {error && (
+                                                    <p className="text-red-400 text-sm font-medium text-center mb-4 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                                                        {error}
+                                                    </p>
+                                                )}
+                                                <div className="flex flex-col items-center gap-4 mt-4 w-full">
+                                                    {donorStatus && isCurrentMonthPending && pendingMonths.length > 1 && (
+                                                        <div className="w-full flex flex-col items-center gap-2">
+                                                            <button
+                                                                onClick={() => handlePayment(FIXED_AMOUNT, false, [{ month: now.getMonth() + 1, year: now.getFullYear() }])}
+                                                                disabled={loading}
+                                                                className="px-8 py-4 bg-white/10 text-white border border-white/20 font-bold rounded-2xl hover:bg-white/20 transition-all shadow-xl hover:-translate-y-1 w-full sm:w-auto sm:min-w-[350px] disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                                                            >
+                                                                Pay Only Current Month (₹{FIXED_AMOUNT})
+                                                            </button>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="w-full flex flex-col items-center gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                if (pendingMonths.length === 0) {
+                                                                    handlePayment(FIXED_AMOUNT, false, [{ month: now.getMonth() + 1, year: now.getFullYear() }]);
+                                                                } else if (pendingMonths.length === 1) {
+                                                                    handlePayment(totalPendingAmount, false, [{ month: pendingMonths[0].month, year: pendingMonths[0].year }]);
+                                                                } else {
+                                                                    handlePayment(totalPendingAmount, true, pendingMonths.map(m => ({ month: m.month, year: m.year })));
+                                                                }
+                                                            }}
+                                                            disabled={loading}
+                                                            className="px-8 py-4 bg-white text-black font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-xl hover:-translate-y-1 w-full sm:w-auto sm:min-w-[350px] disabled:opacity-75 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                                                        >
+                                                            {loading ? 'Processing...' : (donorStatus ? (pendingMonths.length > 1 ? "Pay All Pending Contributions" : "Pay This Month's Contribution") : "Pay First Month's Contribution")}
+                                                        </button>
+                                                        <p className="text-gray-500 text-xs font-medium">
+                                                            Proceed to pay your {pendingMonths.length > 1 ? `₹${FIXED_AMOUNT} × ${pendingMonths.length} = ` : ""}₹{totalPendingAmount}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div className="relative z-10">
@@ -418,21 +486,13 @@ const MonthlyDonation = () => {
                             </div>
                             {/* Summary chips */}
                             {(() => {
-                                const currentYear = donorStatus?.currentYear || new Date().getFullYear();
-                                const currentMonthIndex = donorStatus?.currentMonth ? donorStatus.currentMonth - 1 : new Date().getMonth();
-                                const enrollmentDate = donorStatus?.monthlyDonorEnrolledAt ? new Date(donorStatus.monthlyDonorEnrolledAt) : null;
-                                const isEnrolledInSameYear = enrollmentDate && enrollmentDate.getFullYear() === currentYear;
-                                const enrollmentMonthIndex = isEnrolledInSameYear ? enrollmentDate.getMonth() : (enrollmentDate && enrollmentDate.getFullYear() < currentYear ? 0 : -1);
-
-                                let paidMonths = 0;
-                                if (donorStatus && enrollmentMonthIndex !== -1) {
-                                    for (let i = enrollmentMonthIndex; i < currentMonthIndex; i++) {
-                                        paidMonths++;
-                                    }
-                                    if (donorStatus.paidThisMonth) paidMonths++;
-                                }
-
-                                const pendingMonths = donorStatus && !donorStatus.paidThisMonth ? 1 : 0;
+                                const history = donorStatus?.monthlyHistory || [];
+                                const paidMonths = history.filter(item =>
+                                    item.status === 'paid' ||
+                                    item.status === 'success' ||
+                                    (item.donation && item.donation.paymentStatus === 'success')
+                                ).length;
+                                const pendingMonths = history.filter(item => item.status === 'pending').length;
 
                                 return (
                                     <div className="flex gap-3 flex-wrap">
@@ -447,7 +507,7 @@ const MonthlyDonation = () => {
                                             </div>
                                         )}
                                         <div className="flex items-center gap-2 px-4 py-2 bg-black rounded-xl">
-                                            <span className="text-sm font-bold text-white">₹{FIXED_AMOUNT * 12} / year</span>
+                                            <span className="text-sm font-bold text-white">₹{FIXED_AMOUNT * history.length} tracked</span>
                                         </div>
                                     </div>
                                 );
@@ -509,7 +569,7 @@ const MonthlyDonation = () => {
                                                     <span className="text-gray-300 font-medium text-sm">—</span>
                                                 ) : (
                                                     <button
-                                                        onClick={handlePayment}
+                                                        onClick={() => handlePayment(FIXED_AMOUNT, false, [{ month: item.month, year: item.year }])}
                                                         disabled={loading}
                                                         className="inline-flex items-center px-4 py-1.5 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                                     >

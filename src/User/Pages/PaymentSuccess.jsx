@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import QuickDonationSuccess from '../Components/QuickDonationSuccess';
 import ProjectDonationSuccess from '../Components/ProjectDonationSuccess';
+import MonthlyDonationSuccess from '../Components/MonthlyDonationSuccess';
 
 const PaymentSuccess = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { amount, transactionId, projectTitle } = location.state || {};
+    const { amount, transactionId, projectTitle, isMonthly } = location.state || {};
 
     useEffect(() => {
         if (!location.state) {
@@ -25,6 +26,15 @@ const PaymentSuccess = () => {
                     Go to Home
                 </Link>
             </div>
+        );
+    }
+
+    if (isMonthly) {
+        return (
+            <MonthlyDonationSuccess
+                amount={amount}
+                transactionId={transactionId}
+            />
         );
     }
 

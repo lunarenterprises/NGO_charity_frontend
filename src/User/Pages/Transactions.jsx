@@ -148,12 +148,12 @@ const Transactions = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-left">
-                                        <th className="px-6 py-4 rounded-tl-3xl border-r border-transparent">Date</th>
-                                        <th className="px-6 py-4 border-l border-transparent">Project</th>
-                                        <th className="px-6 py-4 border-l border-transparent">Transaction ID</th>
-                                        <th className="px-6 py-4 border-l border-transparent">Status</th>
-                                        <th className="px-6 py-4 rounded-tr-3xl text-right border-l border-transparent">Amount</th>
+                                    <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-left">
+                                        <th className="px-6 py-4 rounded-tl-3xl border-r border-transparent">DATE</th>
+                                        <th className="px-6 py-4 border-l border-transparent">PROJECT</th>
+                                        <th className="px-6 py-4 border-l border-transparent">TRANSACTION ID</th>
+                                        <th className="px-6 py-4 border-l border-transparent">STATUS</th>
+                                        <th className="px-6 py-4 rounded-tr-3xl text-right border-l border-transparent">AMOUNT</th>
                                     </tr>
                                 </thead>
                                 <tbody className={`transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
@@ -162,21 +162,43 @@ const Transactions = () => {
                                             <td className="px-6 py-5 whitespace-nowrap">
                                                 <div className="flex flex-col">
                                                     <span className="text-sm font-bold text-gray-900">
-                                                        {new Date(t.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                        {new Date(t.createdAt || t.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                     </span>
                                                     <span className="text-[11px] font-semibold text-gray-400">
-                                                        {new Date(t.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                        {new Date(t.createdAt || t.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400  group-hover:text-white transition-colors">
-                                                        {getStatusIcon(t.paymentStatus || t.status)}
-                                                    </div>
-                                                    <span className="text-sm font-bold text-gray-800">
-                                                        {t.Project ? (t.Project.name || t.Project.title) : (t.project ? (t.project.name || t.project.title) : 'General Donation')}
-                                                    </span>
+                                                    {(() => {
+                                                        const pData = t.Project || t.project;
+                                                        let pName = "General Fund";
+                                                        if (typeof pData === 'string') pName = pData;
+                                                        else if (pData) pName = pData.name || pData.title || "General Fund";
+
+                                                        const isMonthly = pName.toLowerCase().includes('monthly') || t.isMonthly || t.type === 'monthly';
+                                                        const isSuccess = ['completed', 'success', 'confirmed'].includes((t.paymentStatus || t.status)?.toLowerCase());
+
+                                                        return (
+                                                            <>
+                                                                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400 group-hover:text-white transition-colors shrink-0">
+                                                                    {isMonthly && isSuccess ? (
+                                                                        <FaCheckCircle className="w-5 h-5 text-green-500" />
+                                                                    ) : (
+                                                                        getStatusIcon(t.paymentStatus || t.status)
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm font-bold text-gray-800">
+                                                                            {pName}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 whitespace-nowrap">

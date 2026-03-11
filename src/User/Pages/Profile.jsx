@@ -31,12 +31,21 @@ const Profile = () => {
                 let processedDonations = [];
                 if (donationsRes?.data?.success && donationsRes?.data?.data) {
                     processedDonations = donationsRes.data.data.slice(0, 3).map(donation => {
+                        const isMonthly = donation.isMonthly || donation.type === 'monthly';
                         const projectData = donation.Project || donation.project;
+
+                        let projectName = "General Fund";
+                        if (typeof projectData === 'string') {
+                            projectName = projectData;
+                        } else if (projectData) {
+                            projectName = projectData.name || projectData.title || "General Fund";
+                        }
+
                         return {
                             id: donation.id || donation._id,
-                            project: projectData ? (projectData.name || projectData.title) : "General Fund",
+                            project: projectName,
                             amount: `₹${Number(donation.amount || 0).toLocaleString('en-IN')}`,
-                            date: new Date(donation.createdAt).toLocaleDateString('en-US', {
+                            date: new Date(donation.createdAt || donation.date).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: 'numeric'
@@ -106,40 +115,58 @@ const Profile = () => {
         <div className="min-h-screen pt-32 pb-20 bg-gray-50 px-6 md:px-12">
             <div className="max-w-4xl mx-auto">
                 {/* Header Card */}
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-black/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                    <div className="relative flex flex-col md:flex-row items-center gap-8">
-                        <div className="w-32 h-32 rounded-3xl bg-black flex items-center justify-center text-white text-4xl font-bold shadow-2xl shadow-black/20 transform hover:scale-105 transition-transform duration-500">
+                <div className="bg-white rounded-[32px] p-8 md:p-10 shadow-sm border border-gray-100 mb-8 overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-black/5 rounded-full -mr-32 -mt-32 blur-3xl text-gray"></div>
+                    <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-10">
+                        {/* Avatar */}
+                        <div className="w-24 h-24 sm:w-30 sm:h-30  rounded-[30px] bg-black flex items-center justify-center text-white sm:text-5xl text-4xl font-bold shadow-2xl shadow-black/20 transform hover:scale-105 transition-transform duration-500 shrink-0">
                             {profileData.fullname.charAt(0).toUpperCase()}
                         </div>
+
+                        {/* User Info */}
                         <div className="text-center md:text-left flex-1">
-                            <h1 className="text-3xl font-bold text-gray-900 mb-1">{profileData.fullname}</h1>
-                            <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-1 md:gap-4 mb-4 text-gray-500 font-bold">
-                                <p className="text-sm flex items-center justify-center md:justify-start gap-1.5 leading-none">
-                                    <FaEnvelope className="w-3 h-3 text-gray-400" />
+                            <h1 className="text-3xl md:text-4xl font-black text-gray-900 mb-2 tracking-tight">{profileData.fullname}</h1>
+
+                            <div className="flex flex-col md:flex-row md:items-center justify-center md:justify-start gap-3 md:gap-6 mb-6 text-gray-500 font-bold">
+                                <p className="text-sm flex items-center justify-center md:justify-start gap-2 leading-none">
+                                    <FaEnvelope className="w-3.5 h-3.5 text-gray-400" />
                                     {profileData.email}
                                 </p>
-                                <div className="hidden md:block w-1 h-1 bg-gray-300 rounded-full"></div>
-                                <p className="text-sm flex items-center justify-center md:justify-start gap-1.5 leading-none">
-                                    <FaPhone className="w-3 h-3 text-gray-400" />
+                                <div className="hidden md:block w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
+                                <p className="text-sm flex items-center justify-center md:justify-start gap-2 leading-none">
+                                    <FaPhone className="w-3.5 h-3.5 text-gray-400" />
                                     {profileData.phone || "No phone"}
                                 </p>
                             </div>
+
                             <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                                <span className="px-4 py-1.5 bg-green-50 text-green-600 text-xs font-bold rounded-full border border-green-100 flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="px-5 py-2 bg-green-50 text-green-600 text-[11px] font-black uppercase tracking-wider rounded-full border border-green-100 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
                                     Active Member
                                 </span>
-                                <span className="px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-full border border-blue-100 flex items-center gap-2">
+                                <span className="px-5 py-2 bg-blue-50 text-blue-600 text-[11px] font-black uppercase tracking-wider rounded-full border border-blue-100 flex items-center gap-2 shadow-sm">
                                     <FaCalendarAlt className="w-3 h-3" />
                                     Joined {profileData.joinedDate}
                                 </span>
                             </div>
+
+                            {/* Mobile Edit Button */}
+                            <div className="mt-8 md:hidden flex justify-center">
+                                <button
+                                    onClick={() => setIsEditModalOpen(true)}
+                                    className="px-10 py-3.5 bg-black text-white text-sm font-black rounded-2xl hover:bg-gray-800 transition-all flex items-center gap-3 active:scale-95"
+                                >
+                                    <FaUserEdit className="w-4 h-4" />
+                                    Edit Profile
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex flex-col items-center md:items-end gap-2">
+
+                        {/* Desktop Edit Button */}
+                        <div className="hidden md:flex flex-col items-end gap-2">
                             <button
                                 onClick={() => setIsEditModalOpen(true)}
-                                className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-black/10 flex items-center gap-2"
+                                className="px-8 py-3 bg-black text-white text-sm font-black rounded-2xl hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center gap-3"
                             >
                                 <FaUserEdit className="w-4 h-4" />
                                 Edit Profile
@@ -154,13 +181,15 @@ const Profile = () => {
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <FaHandsHelping className="w-4 h-4 text-gray-400" />
-                                Be a Monthly Donor
+                                {profileData.isMonthlyDonor ? "Monthly Donoation  " : "Be a Monthly Donor"}
                             </h3>
                             <p className="text-xs text-gray-500 font-medium mb-6 leading-relaxed">
-                                Join our community of monthly donors and create a lasting impact. Your consistent support helps us plan ahead and reach more people in need.
+                                {profileData.isMonthlyDonor
+                                    ? "Thank you for being a part of our monthly donor program. Your consistent support makes a real difference in people's lives."
+                                    : "Join our community of monthly donors and create a lasting impact. Your consistent support helps us plan ahead and reach more people in need."}
                             </p>
-                            <button className="w-full py-3 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-black/5 flex items-center justify-center gap-2 group">
-                                Join the Promise
+                            <button onClick={() => navigate('/monthly-donation')} className="w-full py-3 bg-black text-white text-xs font-bold rounded-xl hover:bg-gray-800 transition-all shadow-lg shadow-black/5 flex items-center justify-center gap-2 group">
+                                {profileData.isMonthlyDonor ? "Manage My Donation" : "Join the Promise"}
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                 </svg>

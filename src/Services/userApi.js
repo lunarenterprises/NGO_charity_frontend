@@ -77,6 +77,11 @@ export const updateUserProfileApi = async (data) => {
     return await commonApi("PUT", `${BASE_URL}/api/user/me`, data, "");
 }
 
+// Enroll as Monthly Donor
+export const enrollAsMonthlyDonorApi = async () => {
+    return await commonApi("POST", `${BASE_URL}/api/monthly-donor/enroll`, "", "");
+}
+
 // Create Monthly Donation Order
 export const createMonthlyDonationOrderApi = async (data) => {
     return await commonApi("POST", `${BASE_URL}/api/monthly-donor/order`, data, "");
@@ -85,6 +90,16 @@ export const createMonthlyDonationOrderApi = async (data) => {
 // Verify Monthly Donation Payment
 export const verifyMonthlyDonationPaymentApi = async (data) => {
     return await commonApi("POST", `${BASE_URL}/api/monthly-donor/verify`, data, "");
+}
+
+// Create Bulk Monthly Donation Order
+export const createBulkMonthlyDonationOrderApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/monthly-donor/bulk-order`, data, "");
+}
+
+// Verify Bulk Monthly Donation Payment
+export const verifyBulkMonthlyDonationPaymentApi = async (data) => {
+    return await commonApi("POST", `${BASE_URL}/api/monthly-donor/bulk-verify`, data, "");
 }
 
 // Get Monthly Donor Status
