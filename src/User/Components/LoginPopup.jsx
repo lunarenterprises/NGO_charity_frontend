@@ -174,7 +174,7 @@ const LoginPopup = ({ onClose }) => {
                     phone: formData.phone
                 });
                 if (result.status === 200 || result.status === 201) {
-                    showAlert("Welcome!", 'Registration successful! Please login.', "success");
+                    await showAlert("Welcome!", 'Registration successful! Please login.', "success");
                     setIsLogin(true);
                 } else {
                     setError(result.response?.data?.message || 'Registration failed');
@@ -198,6 +198,12 @@ const LoginPopup = ({ onClose }) => {
             phone: '',
         });
     };
+
+    const isFormValid = isLogin
+        ? (otpSent
+            ? otpArray.join('').length === 4
+            : (formData.email.trim() !== '' || formData.phone.trim() !== ''))
+        : (formData.fullname.trim() !== '' && formData.email.trim() !== '' && formData.phone.trim() !== '');
 
     const modalContent = (
         <div className="fixed inset-0 z-100 grid place-items-center p-4 bg-black/20 backdrop-blur-[5px] animate-in fade-in duration-300">
@@ -263,7 +269,7 @@ const LoginPopup = ({ onClose }) => {
                             {/* Email Field */}
                             {(!isLogin || (isLogin && !otpSent)) && (
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                    <label className={`text-[10px] font-bold uppercase tracking-widest ml-1 ${isLogin && formData.phone ? 'text-gray-300' : 'text-gray-400'}`}>
                                         Email Address
                                     </label>
                                     <input
@@ -271,8 +277,9 @@ const LoginPopup = ({ onClose }) => {
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
+                                        disabled={isLogin && formData.phone.length > 0}
                                         placeholder="yourname@example.com"
-                                        className="w-full px-5 py-4 bg-gray-200 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black"
+                                        className={`w-full px-5 py-4 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black ${isLogin && formData.phone ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
                                     />
                                 </div>
                             )}
@@ -287,7 +294,7 @@ const LoginPopup = ({ onClose }) => {
                             {/* Phone Field */}
                             {(!isLogin || (isLogin && !otpSent)) && (
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
+                                    <label className={`text-[10px] font-bold uppercase tracking-widest ml-1 ${isLogin && formData.email ? 'text-gray-300' : 'text-gray-400'}`}>
                                         Phone Number
                                     </label>
                                     <input
@@ -295,8 +302,9 @@ const LoginPopup = ({ onClose }) => {
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleInputChange}
+                                        disabled={isLogin && formData.email.length > 0}
                                         placeholder="+91 00000 00000"
-                                        className="w-full px-4 py-3 bg-gray-200 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black"
+                                        className={`w-full px-4 py-3 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black ${isLogin && formData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
                                     />
                                 </div>
                             )}
@@ -353,10 +361,20 @@ const LoginPopup = ({ onClose }) => {
                         {error && <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>}
 
                         <button
-                            disabled={loading}
-                            className="w-full py-4 bg-black text-white text-sm font-bold rounded-2xl hover:bg-gray-900 transition-all duration-300 shadow-xl shadow-black/10 disabled:opacity-50"
+                            disabled={loading || !isFormValid}
+                            className={`w-full py-4 text-sm font-bold rounded-2xl transition-all duration-300 shadow-xl shadow-black/10 flex justify-center items-center gap-2
+                                ${loading || !isFormValid
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed grayscale'
+                                    : 'bg-black text-white hover:bg-gray-900 shadow-black/20 transform hover:-translate-y-0.5'
+                                }`}
                         >
-                            {loading ? 'Processing...' : (isLogin ? (otpSent ? 'Verify & Login' : 'Send OTP') : 'Join the Community')}
+                            {loading ? (
+                                <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : null}
+                            <span>{loading ? 'Processing...' : (isLogin ? (otpSent ? 'Verify & Login' : 'Send OTP') : 'Join the Community')}</span>
                         </button>
                     </form>
 

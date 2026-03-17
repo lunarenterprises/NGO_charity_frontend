@@ -9,6 +9,7 @@ import PaymentSuccess from './User/Pages/PaymentSuccess'
 import Profile from './User/Pages/Profile'
 import Transactions from './User/Pages/Transactions'
 import MonthlyDonation from './User/Pages/MonthlyDonation'
+import ChatWindow from './User/Pages/ChatWindow'
 import { Routes, Route } from 'react-router-dom'
 import UserLayout from './User/Layout/UserLayout'
 import AdminLayout from './Admin/Layout/AdminLayout'
@@ -21,6 +22,7 @@ import RecentTransactions from './Admin/Pages/RecentTransactions'
 import Users from './Admin/Pages/Users'
 import Enquiries from './Admin/Pages/Enquiries'
 import AdminLogin from './Admin/Pages/AdminLogin'
+import AdminMessages from './Admin/Pages/Messages'
 import AdminProtectedRoute from './Admin/Layout/AdminProtectedRoute'
 import { AuthProvider } from './Contexts/AuthContext'
 import ScrollToTop from './Components/ScrollToTop'
@@ -48,6 +50,9 @@ function App() {
           <Route path="/monthly-donation" element={<MonthlyDonation onQuickDonationOpen={() => setIsQuickDonationOpen(true)} />} />
         </Route>
 
+        {/* Chat - Standalone (no navbar/footer) */}
+        <Route path="/chat" element={<ChatWindow />} />
+
         {/* Admin Routes - Protected */}
         <Route path="/admin" element={<AdminProtectedRoute />}>
           <Route element={<AdminLayout />}>
@@ -60,6 +65,8 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="banner-settings" element={<AdminBannerSettings />} />
           </Route>
+          {/* Admin Messages - Standalone (no sidebar) */}
+          <Route path="messages" element={<AdminMessages />} />
         </Route>
       </Routes>
     </AuthProvider>

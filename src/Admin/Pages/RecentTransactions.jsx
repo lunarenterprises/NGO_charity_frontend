@@ -96,13 +96,23 @@ const RecentTransactions = () => {
     };
 
     const getDonationType = (txn) => {
+        if (txn.isMonthly || txn.type === 'monthly') {
+            const amount = Number(txn.amount);
+            if (amount > 1000 && amount % 1000 === 0) {
+                return `Monthly Donation (1000 * ${txn.count || (amount / 1000)})`;
+            }
+            return 'Monthly Donation';
+        }
+        if (txn.project) {
+            if (typeof txn.project === 'string') return txn.project;
+            return txn.project.name || txn.project.title || 'Project Donation';
+        }
         if (txn.Project) return txn.Project.name || txn.Project.title || 'Project Donation';
-        if (txn.project) return txn.project.name || txn.project.title || 'Project Donation';
         return 'Quick Donation';
     };
 
     const isQuickDonation = (txn) => {
-        return !txn.Project && !txn.project;
+        return !txn.Project && !txn.project && !txn.isMonthly && txn.type !== 'monthly';
     };
 
     const getStatusBadge = (status) => {
@@ -228,8 +238,8 @@ const RecentTransactions = () => {
                                             </td>
                                             <td className="px-6 py-4 text-center">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs text-gray-700 font-medium">{formatDate(txn.createdAt)}</span>
-                                                    <span className="text-[10px] text-gray-400">{formatTime(txn.createdAt)}</span>
+                                                    <span className="text-xs text-gray-700 font-medium">{formatDate(txn.createdAt || txn.date)}</span>
+                                                    <span className="text-[10px] text-gray-400">{formatTime(txn.createdAt || txn.date)}</span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-center">

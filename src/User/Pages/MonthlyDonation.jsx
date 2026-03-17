@@ -37,6 +37,8 @@ const MonthlyDonation = () => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [error, setError] = useState('');
     const [donorStatus, setDonorStatus] = useState(null);
+    const [page, setPage] = useState(1);
+    const [meta, setMeta] = useState({ totalPages: 1, total: 0 });
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -48,10 +50,13 @@ const MonthlyDonation = () => {
                 return;
             }
             try {
-                const res = await getMonthlyDonorStatusApi();
+                const res = await getMonthlyDonorStatusApi({ page, limit: 10 });
                 const statusData = res?.data?.data || res?.data;
                 if (statusData && statusData.isMonthlyDonor) {
                     setDonorStatus(statusData);
+                    if (res.data?.meta) {
+                        setMeta(res.data.meta);
+                    }
                     // If they are a donor, show the payment or caught up screen
                     setSubmitted(true);
                 }
@@ -62,7 +67,7 @@ const MonthlyDonation = () => {
             }
         };
         checkStatus();
-    }, []);
+    }, [page]);
 
     const handleInitialSubmit = (e) => {
         e.preventDefault();
@@ -586,6 +591,33 @@ const MonthlyDonation = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination */}
+                        {donorStatus?.monthlyHistory?.length > 0 && meta.totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-3 mt-8">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="p-2 border border-gray-200 rounded-xl hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                    </svg>
+                                </button>
+                                <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">
+                                    Page {page} of {meta.totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                                    disabled={page === meta.totalPages}
+                                    className="p-2 border border-gray-200 rounded-xl hover:bg-black hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                 </div>

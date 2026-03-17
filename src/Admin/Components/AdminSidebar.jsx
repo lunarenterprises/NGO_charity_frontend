@@ -10,6 +10,7 @@ import {
     HiOutlineClipboardCheck,
     HiOutlineSwitchHorizontal,
     HiOutlineQuestionMarkCircle,
+    HiOutlineChatAlt,
     HiX
 } from 'react-icons/hi';
 import { useAuth } from '../../Contexts/AuthContext';
@@ -38,6 +39,7 @@ const AdminSidebar = ({ isOpen, onClose }) => {
         { title: 'Completed Projects', path: '/admin/completed-projects', icon: <HiOutlineClipboardCheck className="w-5 h-5" /> },
         { title: 'Recent Transactions', path: '/admin/recent-transactions', icon: <HiOutlineSwitchHorizontal className="w-5 h-5" /> },
         { title: 'Enquiries', path: '/admin/enquiries', icon: <HiOutlineQuestionMarkCircle className="w-5 h-5" /> },
+        { title: 'Messages', path: '/admin/messages', icon: <HiOutlineChatAlt className="w-5 h-5" /> },
         { title: 'Users', path: '/admin/users', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
         { title: 'Banner Settings', path: '/admin/banner-settings', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];

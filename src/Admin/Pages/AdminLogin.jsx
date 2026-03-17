@@ -7,7 +7,8 @@ import { useAuth } from '../../Contexts/AuthContext';
 const AdminLogin = () => {
     const { login } = useAuth();
     const [adminData, setAdminData] = useState({
-        identifier: '',
+        email: '',
+        phone: '',
         otp: ''
     });
     const [otpSent, setOtpSent] = useState(false);
@@ -41,8 +42,7 @@ const AdminLogin = () => {
     const handleResendOtp = async () => {
         if (!canResend) return;
 
-        const isEmail = adminData.identifier.includes('@');
-        const payload = isEmail ? { email: adminData.identifier } : { phone: adminData.identifier };
+        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone };
 
         setLoading(true);
         try {
@@ -107,12 +107,11 @@ const AdminLogin = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        const isEmail = adminData.identifier.includes('@');
-        const payload = isEmail ? { email: adminData.identifier } : { phone: adminData.identifier };
+        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone };
 
         if (!otpSent) {
             // Step 1: Send OTP
-            if (!adminData.identifier) {
+            if (!adminData.email && !adminData.phone) {
                 setError('Please enter your Email or Phone Number');
                 return;
             }
@@ -157,6 +156,10 @@ const AdminLogin = () => {
             }
         }
     };
+
+    const isFormValid = otpSent
+        ? otp.join('').length === 4
+        : (adminData.email.trim() !== '' || adminData.phone.trim() !== '');
 
     return (
         <div className="min-h-screen grid lg:grid-cols-2 font-sans bg-white">
@@ -222,26 +225,52 @@ const AdminLogin = () => {
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="space-y-1">
-
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                                        <AiOutlineUser className="h-5 w-5 text-gray-400 group-focus-within:text-black transition-colors" />
+                        <div className="space-y-2">
+                            {!otpSent ? (
+                                <>
+                                    <div className="space-y-1">
+                                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${adminData.phone ? 'text-gray-300' : 'text-gray-400'}`}>
+                                            Email Address
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                                                <AiOutlineUser className={`h-5 w-5 transition-colors ${adminData.phone ? 'text-gray-300' : 'text-gray-400 group-focus-within:text-black'}`} />
+                                            </div>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={adminData.email}
+                                                onChange={handleChange}
+                                                disabled={adminData.phone.length > 0}
+                                                className={`block w-full pl-12 pr-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.phone ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
+                                                placeholder="admin@example.com"
+                                            />
+                                        </div>
                                     </div>
-                                    <input
-                                        type="text"
-                                        name="identifier"
-                                        value={adminData.identifier}
-                                        onChange={handleChange}
-                                        disabled={otpSent}
-                                        className="block w-full pl-12 pr-5 py-4 bg-gray-200 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black disabled:opacity-50"
-                                        placeholder="Enter Email or Phone"
-                                    />
-                                </div>
-                            </div>
 
-                            {otpSent && (
+                                    <div className="text-center text-[15px] font-black text-gray-300">OR</div>
+
+                                    <div className="space-y-1">
+                                        <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${adminData.email ? 'text-gray-300' : 'text-gray-400'}`}>
+                                            Phone Number
+                                        </label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                                                <AiOutlineUser className={`h-5 w-5 transition-colors ${adminData.email ? 'text-gray-300' : 'text-gray-400 group-focus-within:text-black'}`} />
+                                            </div>
+                                            <input
+                                                type="tel"
+                                                name="phone"
+                                                value={adminData.phone}
+                                                onChange={handleChange}
+                                                disabled={adminData.email.length > 0}
+                                                className={`block w-full pl-12 pr-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
+                                                placeholder="+91 00000 00000"
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
                                 <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
                                     <div className="flex items-center justify-between px-1">
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -297,15 +326,19 @@ const AdminLogin = () => {
 
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full flex items-center justify-center gap-2 py-4 bg-black text-white text-sm font-black rounded-2xl hover:bg-gray-900 transition-all duration-300 shadow-2xl shadow-black/10 active:scale-[0.98] disabled:opacity-70"
+                            disabled={loading || !isFormValid}
+                            className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl transition-all duration-300 shadow-2xl shadow-black/10 active:scale-[0.98] font-black text-sm
+                                ${loading || !isFormValid
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed grayscale'
+                                    : 'bg-black text-white hover:bg-gray-900 shadow-black/20 transform hover:-translate-y-0.5'
+                                }`}
                         >
                             {loading ? (
                                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                             ) : (
                                 <>
                                     {otpSent ? 'VERIFY OTP' : 'SEND SECURITY CODE'}
-                                    <AiOutlineArrowRight className="w-4 h-4" />
+                                    <AiOutlineArrowRight className="w-4 h-4 ml-1" />
                                 </>
                             )}
                         </button>

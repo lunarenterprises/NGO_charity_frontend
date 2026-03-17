@@ -103,6 +103,27 @@ export const verifyBulkMonthlyDonationPaymentApi = async (data) => {
 }
 
 // Get Monthly Donor Status
-export const getMonthlyDonorStatusApi = async () => {
-    return await commonApi("GET", `${BASE_URL}/api/monthly-donor/my-status`, "", "");
+export const getMonthlyDonorStatusApi = async (params = {}) => {
+    const { page = 1, limit = 10 } = params;
+    const queryString = `?page=${page}&limit=${limit}`;
+    return await commonApi("GET", `${BASE_URL}/api/monthly-donor/my-status${queryString}`, "", "");
+}
+
+// Get Current User Financial Year Donations
+export const getUserFinancialYearTransactionsApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/donations/my-financial-year`, "", "");
+}
+
+// ── Chat APIs ──────────────────────────────────────────────────────
+
+// Get Chat History with Admin (assuming admin ID is known or backend handles generic 'admin' target)
+export const getChatHistoryUserApi = async (adminId = 1) => { 
+    // Usually the backend can handle an 'admin' identifier or we pass a specific admin ID. 
+    // We'll pass 1 for now or whatever ID represents the support admin.
+    return await commonApi("GET", `${BASE_URL}/api/chat/history/${adminId}`, "", "");
+}
+
+// Upload Chat File
+export const uploadChatFileUserApi = async (reqBody, header) => {
+    return await commonApi("POST", `${BASE_URL}/api/chat/upload`, reqBody, header);
 }

@@ -1,8 +1,14 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { HiCheckCircle, HiArrowRight, HiCalendar } from 'react-icons/hi';
+import { useEffect } from 'react';
+import { clearRazorpayLocalData } from '../../Utils/razorpayUtils';
 
 const MonthlyDonationSuccess = ({ amount, transactionId }) => {
+
+    useEffect(() => {
+        clearRazorpayLocalData();
+    }, []);
+
     return (
         <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-gray-200 text-gray-900 flex flex-col justify-center pt-28 pb-12 relative">
             {/* Background Decorative Elements */}
@@ -82,39 +88,39 @@ const MonthlyDonationSuccess = ({ amount, transactionId }) => {
                     <div className="lg:w-1/2 hidden lg:block animate-in fade-in zoom-in-95 duration-1000">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-4">
-                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl">
+                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl h-48">
                                     <img
-                                        src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                        alt="Impact"
-                                        className="h-36 w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
+                                        src="https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                                        alt="Healthcare Equipment"
+                                        className="h-full w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
                                     />
                                     <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
                                 </div>
-                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl">
+                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl h-64">
                                     <img
-                                        src="https://images.unsplash.com/photo-1454165833767-027ffea72417?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                        alt="Helping hands"
-                                        className="h-56 w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
+                                        src="https://images.unsplash.com/photo-1550831107-1553da8c8464?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                                        alt="Medical Professional"
+                                        className="h-full w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
                                     />
                                     <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
                                 </div>
                             </div>
-                            <div className="space-y-4 pt-8">
-                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl">
+                            <div className="space-y-4 pt-12">
+                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl h-64">
                                     <img
-                                        src="https://images.unsplash.com/photo-1542810634-71277d95dcbb?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                        alt="Children"
-                                        className="h-56 w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
+                                        src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                                        alt="Medical Supplies"
+                                        className="h-full w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
                                     />
                                     <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
                                 </div>
-                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl">
+                                <div className="group relative rounded-[32px] overflow-hidden drop-shadow-2xl h-48">
                                     <img
-                                        src="https://images.unsplash.com/photo-1509099836639-18ba1795216d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                                        alt="Hope"
-                                        className="h-36 w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
+                                        src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+                                        alt="Healthcare Support"
+                                        className="h-full w-full object-cover grayscale-30 hover:grayscale-0 transition-all duration-700"
                                     />
-                                    <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent"></div>
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                                 </div>
                             </div>
                         </div>

@@ -128,6 +128,8 @@ const QuickDonationModal = ({ onClose }) => {
         }
     };
 
+    const isFormValid = (isLoggedIn || (donorName.trim() && donorEmail.trim())) && amount && parseFloat(amount) > 0;
+
     const modalContent = (
         <div className="fixed inset-0 z-110 grid place-items-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
             <div
@@ -144,45 +146,59 @@ const QuickDonationModal = ({ onClose }) => {
 
                 <div className="p-8 md:p-10">
                     <div className="flex flex-col items-center text-center mb-8">
-                        <div className="w-16 h-16 mb-4 bg-black text-white rounded-2xl flex items-center justify-center">
-                            <FaHeart className="w-6 h-6" />
+                        <div className="w-13 h-13 mb-1 bg-black text-white rounded-2xl flex items-center justify-center">
+                            <FaHeart className="w-5 h-5" />
                         </div>
                         <h2 className="text-2xl font-bold text-black tracking-tight">Enter Amount</h2>
-                        <p className="mt-1 text-gray-500 font-medium">Support our general fund directly</p>
+                        <p className=" text-gray-500 font-medium">Support our general fund directly</p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {!isLoggedIn && (
-                            <div className="space-y-3">
-                                <input
-                                    type="text"
-                                    placeholder="Full Name"
-                                    value={donorName}
-                                    onChange={(e) => setDonorName(e.target.value)}
-                                    className="w-full px-5 py-3 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200"
-                                    required={!isLoggedIn}
-                                />
-                                <input
-                                    type="email"
-                                    placeholder="Email Address"
-                                    value={donorEmail}
-                                    onChange={(e) => setDonorEmail(e.target.value)}
-                                    className="w-full px-5 py-3 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200"
-                                    required={!isLoggedIn}
-                                />
-                                <input
-                                    type="tel"
-                                    placeholder="Phone Number"
-                                    value={donorPhone}
-                                    onChange={(e) => setDonorPhone(e.target.value)}
-                                    className="w-full px-5 py-3 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200"
-                                    required={!isLoggedIn}
-                                />
+                            <div className="space-y-3.5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-gray-700 ml-1 flex items-center gap-1">
+                                        Full Name <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. John Doe"
+                                        value={donorName}
+                                        onChange={(e) => setDonorName(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200 text-sm"
+                                        required={!isLoggedIn}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-gray-700 ml-1 flex items-center gap-1">
+                                        Email Address <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        placeholder="e.g. john@example.com"
+                                        value={donorEmail}
+                                        onChange={(e) => setDonorEmail(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200 text-sm"
+                                        required={!isLoggedIn}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-gray-700 ml-1 flex items-center gap-2">
+                                        Phone Number <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider">(Optional)</span>
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        placeholder="e.g. +91 98765 43210"
+                                        value={donorPhone}
+                                        onChange={(e) => setDonorPhone(e.target.value)}
+                                        className="w-full px-4 py-2 bg-gray-100 border-2 border-transparent rounded-xl focus:bg-white focus:border-black outline-none transition-all duration-200 text-sm"
+                                    />
+                                </div>
                             </div>
                         )}
 
-                        <div className="relative group mt-6">
-                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-xl font-bold text-black group-focus-within:text-black transition-colors">
+                        <div className="relative group mt-5">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-black group-focus-within:text-black transition-colors">
                                 ₹
                             </div>
                             <input
@@ -190,7 +206,7 @@ const QuickDonationModal = ({ onClose }) => {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="0.00"
-                                className="w-full pl-10 pr-5 py-4 bg-gray-200 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black outline-none transition-all duration-200 text-2xl font-bold placeholder:text-gray-400 appearance-none"
+                                className="w-full pl-9 pr-4 py-3 bg-gray-100 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black outline-none transition-all duration-200 text-xl font-bold placeholder:text-gray-400 appearance-none"
                                 required
                             />
                         </div>
@@ -213,16 +229,20 @@ const QuickDonationModal = ({ onClose }) => {
 
                         <button
                             type="submit"
-                            disabled={isLoading}
-                            className={`w-full py-4 mt-6 bg-black text-white rounded-2xl font-bold hover:bg-gray-900 transition-all duration-300 shadow-xl shadow-black/10 hover:shadow-black/20 transform hover:-translate-y-0.5 flex justify-center items-center ${isLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                            disabled={isLoading || !isFormValid}
+                            className={`w-full py-4 mt-6 rounded-2xl font-bold transition-all duration-300 flex justify-center items-center gap-2
+                                ${isLoading || !isFormValid
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none grayscale'
+                                    : 'bg-black text-white hover:bg-gray-900 shadow-xl shadow-black/10 hover:shadow-black/20 transform hover:-translate-y-0.5'
+                                }`}
                         >
                             {isLoading ? (
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                             ) : null}
-                            {isLoading ? 'Processing...' : 'Donate Now'}
+                            <span>{isLoading ? 'Processing...' : 'Donate Now'}</span>
                         </button>
                     </form>
                 </div>

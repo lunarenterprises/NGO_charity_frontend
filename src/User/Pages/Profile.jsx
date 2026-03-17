@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Contexts/AuthContext';
-import { getUserProfileApi, getUserDonationsApi } from '../../Services/userApi';
-import { FaEnvelope, FaPhone, FaCalendarAlt, FaHandsHelping, FaHistory, FaUserEdit } from 'react-icons/fa';
+import { getUserProfileApi, getUserDonationsApi, getUserFinancialYearTransactionsApi } from '../../Services/userApi';
+import { FaEnvelope, FaPhoneAlt, FaCalendarAlt, FaHandsHelping, FaHistory, FaUserEdit, FaDownload, FaFileAlt } from 'react-icons/fa';
 import EditProfileModal from '../Components/EditProfileModal';
+import Swal from 'sweetalert2';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const Profile = () => {
     const { user, updateUser } = useAuth();
@@ -12,12 +15,139 @@ const Profile = () => {
     const [profileData, setProfileData] = useState(null);
     const [error, setError] = useState(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadStatement = async () => {
+        try {
+            setDownloading(true);
+            const res = await getUserFinancialYearTransactionsApi();
+            if (res?.data?.success) {
+                const { transactions, fy } = res.data.data;
+                if (!transactions || transactions.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        iconColor: '#000',
+                        title: 'No Transactions',
+                        text: `We couldn't find any transactions for the financial year ${fy}.`,
+                        confirmButtonColor: '#000'
+                    });
+                    return;
+                }
+
+                // Initialize PDF
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.width;
+
+                // --- Header Section ---
+                // NGO Branding
+                doc.setFontSize(22);
+                doc.setFont("helvetica", "bold");
+                doc.text("Yashfi Foundation", 20, 25);
+                
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text("Empowering Communities, Changing Lives", 20, 32);
+                doc.text("Email: info@yashfi.org | Web: ngocharity.lunarenterprises.co.in", 20, 37);
+
+                // Divider
+                doc.setDrawColor(0);
+                doc.setLineWidth(0.5);
+                doc.line(20, 45, pageWidth - 20, 45);
+
+                // Report Title
+                doc.setFontSize(16);
+                doc.setFont("helvetica", "bold");
+                doc.text("ANNUAL DONATION STATEMENT", 20, 58);
+                
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(`Financial Year: ${fy}`, 20, 65);
+
+                // User Details Box
+                doc.setFillColor(250, 250, 250);
+                doc.rect(20, 75, pageWidth - 40, 35, 'F');
+                doc.setDrawColor(230, 230, 230);
+                doc.rect(20, 75, pageWidth - 40, 35, 'S');
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("DONOR DETAILS", 25, 83);
+                
+                doc.setFont("helvetica", "normal");
+                doc.text(`Full Name: ${profileData.fullname}`, 25, 90);
+                doc.text(`Email Address: ${profileData.email}`, 25, 96);
+                doc.text(`Mobile: ${profileData.phone || "N/A"}`, 25, 102);
+                doc.text(`Member Since: ${profileData.joinedDate}`, pageWidth / 2 + 10, 90);
+                doc.text(`Statement Date: ${new Date().toLocaleDateString('en-IN')}`, pageWidth / 2 + 10, 96);
+
+                // --- Table Section ---
+                const tableHeaders = [["Date", "Project / Initiative", "Transaction ID", "Status", "Amount (INR)"]];
+                const tableRows = transactions.map(t => [
+                    new Date(t.date).toLocaleDateString('en-IN'),
+                    t.project,
+                    t.paymentId || t.id,
+                    t.status,
+                    Number(t.amount).toLocaleString('en-IN')
+                ]);
+
+                autoTable(doc, {
+                    head: tableHeaders,
+                    body: tableRows,
+                    startY: 120,
+                    margin: { left: 20, right: 20 },
+                    styles: { fontSize: 9, cellPadding: 4 },
+                    headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    alternateRowStyles: { fillColor: [245, 245, 245] },
+                    columnStyles: {
+                        4: { halign: 'right', fontStyle: 'bold' }
+                    }
+                });
+
+                // --- Footer Section ---
+                const finalY = doc.lastAutoTable.finalY + 15;
+                const totalAmount = transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(`Total Contribution in FY ${fy}: INR ${totalAmount.toLocaleString('en-IN')}/-`, pageWidth - 20, finalY, { align: 'right' });
+
+                // Signature/Note
+                doc.setFontSize(9);
+                doc.setFont("helvetica", "italic");
+                doc.text("This is a computer-generated statement and does not require a physical signature.", 20, finalY + 25);
+                doc.text("For any queries, please contact us at info@yashfi.org", 20, finalY + 30);
+
+                // Save PDF
+                doc.save(`Donation_Statement_${fy}_${user.fullname.replace(/\s+/g, '_')}.pdf`);
+
+                Swal.fire({
+                    icon: 'success',
+                    iconColor: '#000',
+                    title: 'Download Started',
+                    text: 'Your tax statement PDF is being downloaded.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        } catch (err) {
+            console.error("Profile: Download Error Detailed", err);
+            Swal.fire({
+                icon: 'error',
+                iconColor: '#000',
+                title: 'Download Failed',
+                text: 'An error occurred while generating your statement. Please try again later.',
+                confirmButtonColor: '#000'
+            });
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     const fetchUserData = useCallback(async () => {
         try {
             const [profileRes, donationsRes] = await Promise.all([
                 getUserProfileApi(),
-                getUserDonationsApi({ page: 1, limit: 3 })
+                getUserDonationsApi({ page: 1, limit: 6 })
             ]);
 
             if (profileRes?.data?.success) {
@@ -30,7 +160,7 @@ const Profile = () => {
 
                 let processedDonations = [];
                 if (donationsRes?.data?.success && donationsRes?.data?.data) {
-                    processedDonations = donationsRes.data.data.slice(0, 3).map(donation => {
+                    processedDonations = donationsRes.data.data.slice(0, 6).map(donation => {
                         const isMonthly = donation.isMonthly || donation.type === 'monthly';
                         const projectData = donation.Project || donation.project;
 
@@ -134,7 +264,7 @@ const Profile = () => {
                                 </p>
                                 <div className="hidden md:block w-1.5 h-1.5 bg-gray-200 rounded-full"></div>
                                 <p className="text-sm flex items-center justify-center md:justify-start gap-2 leading-none">
-                                    <FaPhone className="w-3.5 h-3.5 text-gray-400" />
+                                    <FaPhoneAlt className="w-3.5 h-3.5 text-gray-400" />
                                     {profileData.phone || "No phone"}
                                 </p>
                             </div>
@@ -196,7 +326,7 @@ const Profile = () => {
                             </button>
                         </div>
 
-                        <div className="bg-black rounded-3xl p-6 shadow-xl shadow-black/10 text-white relative overflow-hidden">
+                        <div className="bg-black rounded-3xl p-6 shadow-xl shadow-black/10 text-white relative overflow-hidden mb-6">
                             <FaHandsHelping className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 rotate-12" />
                             <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                                 <FaHandsHelping className="w-4 h-4" />
@@ -209,6 +339,36 @@ const Profile = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Statement Download Card */}
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <FaFileAlt className="w-4 h-4 text-gray-400" />
+                                    Tax Statement
+                                </h3>
+                                <p className="text-xs text-gray-500 font-medium mb-6 leading-relaxed">
+                                    Download your consolidated donation statement for the last financial year for your records.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={handleDownloadStatement} 
+                                disabled={downloading}
+                                className="w-full py-3 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all flex items-center justify-center gap-3 group disabled:opacity-50 active:scale-95"
+                            >
+                                {downloading ? (
+                                    <>
+                                        <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                                        Preparing...
+                                    </>
+                                ) : (
+                                    <>
+                                        Download Statement
+                                        <FaDownload className="w-3 h-3 group-hover:translate-y-0.5 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Right Column: History */}
@@ -216,9 +376,9 @@ const Profile = () => {
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 h-full">
                             <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
                                 <FaHistory className="w-4 h-4 text-gray-400" />
-                                Recent Activity
+                                Recent Transactions
                             </h3>
-                            <div className="space-y-4">
+                            <div className="space-y-2">
                                 {profileData.recentDonations.length > 0 ? (
                                     profileData.recentDonations.map((donation) => (
                                         <div key={donation.id} className="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group">

@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { HiCheckCircle, HiArrowRight } from 'react-icons/hi';
+import { clearRazorpayLocalData } from '../../Utils/razorpayUtils';
 
 const QuickDonationSuccess = ({ amount, transactionId }) => {
+
+    useEffect(() => {
+        clearRazorpayLocalData();
+    }, []);
+
     return (
         <div className="min-h-screen overflow-y-auto overflow-x-hidden bg-black text-white flex flex-col justify-center pt-28 pb-12 relative">
             {/* Background Decorative Elements */}

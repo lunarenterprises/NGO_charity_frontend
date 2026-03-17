@@ -301,11 +301,11 @@ const Users = () => {
                                                 ₹{userTransactions.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0).toLocaleString('en-IN')}
                                             </span>
                                         </div>
-                                        <div className="w-px h-8 bg-gray-400 self-end"></div>
-                                        <div className="flex flex-col">
+                                       
+                                       {/*  <div className="flex flex-col">
                                             <span className="text-[10px] font-black uppercase text-gray-500">Impact Count</span>
                                             <span className="text-lg font-black text-white">{txnTotalRecords || userTransactions.length}</span>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </div>
@@ -330,8 +330,14 @@ const Users = () => {
                                 <>
                                     <div className="space-y-6 overflow-y-auto pr-4 custom-scrollbar flex-1 mb-4">
                                         {userTransactions.map((txn, idx) => {
-                                            const projectName = txn.Project ? (txn.Project.name || txn.Project.title) : (txn.project ? (txn.project.name || txn.project.title) : 'General Donation');
-                                            const date = txn.createdAt ? new Date(txn.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+                                            const projectName = (txn.isMonthly || txn.type === 'monthly') 
+                                                ? ((Number(txn.amount) > 1000 && Number(txn.amount) % 1000 === 0) 
+                                                    ? `Monthly Donation (1000 * ${txn.count || (Number(txn.amount) / 1000)})` 
+                                                    : 'Monthly Donation')
+                                                : (txn.project 
+                                                    ? (typeof txn.project === 'string' ? txn.project : (txn.project.name || txn.project.title)) 
+                                                    : (txn.Project ? (txn.Project.name || txn.Project.title) : 'Quick Donation'));
+                                            const date = (txn.createdAt || txn.date) ? new Date(txn.createdAt || txn.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
                                             const amount = Number(txn.amount || 0).toLocaleString('en-IN');
                                             const txnId = (txn.razorpayPaymentId || txn.paymentId || txn._id || txn.id)?.toString().substring(0, 15);
 

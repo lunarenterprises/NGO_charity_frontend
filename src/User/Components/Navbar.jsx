@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaHandsHelping, FaRegCheckCircle } from 'react-icons/fa';
 import LoginPopup from './LoginPopup';
-import DonationTypeModal from './DonationTypeModal';
 import { useAuth } from '../../Contexts/AuthContext';
+import { showConfirm } from '../../Utils/alert';
 
-const Navbar = ({ onQuickDonationOpen }) => {
+const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
     const { user, logout, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -13,7 +13,6 @@ const Navbar = ({ onQuickDonationOpen }) => {
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
     const [isMobileProjectsOpen, setIsMobileProjectsOpen] = useState(false);
     const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
-    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const dropdownRef = useRef(null);
 
@@ -30,16 +29,20 @@ const Navbar = ({ onQuickDonationOpen }) => {
         };
     }, []);
 
-    const handleLogout = () => {
-        logout();
-        setIsProfileOpen(false);
-        navigate('/');
+    const handleLogout = async () => {
+        const result = await showConfirm('Sign Out?', 'Are you sure you want to sign out of your account?');
+        if (result.isConfirmed) {
+            logout();
+            setIsProfileOpen(false);
+            setIsMenuOpen(false);
+            navigate('/');
+        }
     };
 
     const isActive = (path) => location.pathname === path;
 
     return (
-        <nav className="fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-50 transition-all duration-300">
+        <nav className="fixed top-0 left-0 w-full bg-white/90 backdrop-blur-md shadow-sm z-100 transition-all duration-300">
             <div className=" mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
                 {/* Logo and desktop links... */}
                 <div
@@ -134,7 +137,7 @@ const Navbar = ({ onQuickDonationOpen }) => {
                 {/* Desktop CTA */}
                 <div className="hidden md:flex items-center gap-4">
                     <button
-                        onClick={() => setIsDonationModalOpen(true)}
+                        onClick={onDonationOpen}
                         className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-900 transition-all duration-300 shadow-md shadow-black/10 hover:shadow-black/20"
                     >
                         Donate Now
@@ -332,7 +335,7 @@ const Navbar = ({ onQuickDonationOpen }) => {
                             </button>
                         )}
                         <button
-                            onClick={() => { setIsDonationModalOpen(true); setIsMenuOpen(false); }}
+                            onClick={() => { onDonationOpen(); setIsMenuOpen(false); }}
                             className="w-full py-4 bg-black text-white font-bold rounded-2xl shadow-lg"
                         >
                             Donate Now
@@ -341,16 +344,6 @@ const Navbar = ({ onQuickDonationOpen }) => {
                 </div>
             )}
             {isLoginPopupOpen && <LoginPopup onClose={() => setIsLoginPopupOpen(false)} />}
-            {isDonationModalOpen && (
-                <DonationTypeModal
-                    onClose={() => setIsDonationModalOpen(false)}
-                    onQuickDonation={onQuickDonationOpen}
-                    onRequireLogin={() => {
-                        setIsDonationModalOpen(false);
-                        setIsLoginPopupOpen(true);
-                    }}
-                />
-            )}
         </nav>
     );
 };

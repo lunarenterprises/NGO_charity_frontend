@@ -6,9 +6,10 @@ import {
     HiOutlineUserGroup,
     HiOutlineTrendingUp,
     HiOutlineLightningBolt,
-    HiOutlineUserAdd
+    HiOutlineUserAdd,
+    HiOutlineCalendar
 } from 'react-icons/hi';
-import { getAllDonationsApi, getDashboardStatsApi, getActiveProjectsApi } from '../../Services/adminApi';
+import { getAllDonationsApi, getDashboardStatsApi } from '../../Services/adminApi';
 
 const StatCard = ({ title, value, icon, color }) => (
     <div className="bg-white p-5 border border-gray-100 rounded-lg shadow-sm hover:border-black transition-all group">
@@ -29,7 +30,6 @@ const AdminDashboard = () => {
 
     // Dashboard Stats State
     const [dashboardStats, setDashboardStats] = useState(null);
-    const [activeProjectsCount, setActiveProjectsCount] = useState(0);
     const [loadingStats, setLoadingStats] = useState(true);
 
     useEffect(() => {
@@ -64,24 +64,14 @@ const AdminDashboard = () => {
     };
     const fetchDashboardStats = async () => {
         try {
-            setLoadingStats(true);
-            const [statsResult, projectsResult] = await Promise.all([
-                getDashboardStatsApi(),
-                getActiveProjectsApi({ page: 1, limit: 1 })
-            ]);
-
-            if (statsResult.status === 200 && statsResult.data && statsResult.data.data) {
-                setDashboardStats(statsResult.data.data);
-            } else if (statsResult.response?.status === 401) {
-                setTimeout(() => fetchDashboardStats(), 1000);
-                return;
-            }
-
-            if (projectsResult.status === 200 && projectsResult.data) {
-                const pData = projectsResult.data;
-                const count = pData.meta?.total || pData.pagination?.total || pData.data?.length || pData.projects?.length || 0;
-                setActiveProjectsCount(count);
-            }
+            const statsResult = await getDashboardStatsApi();
+ 
+             if (statsResult.status === 200 && statsResult.data && statsResult.data.data) {
+                 setDashboardStats(statsResult.data.data);
+             } else if (statsResult.response?.status === 401) {
+                 setTimeout(() => fetchDashboardStats(), 1000);
+                 return;
+             }
 
         } catch (err) {
             if (err.response?.status === 401) {
@@ -94,10 +84,10 @@ const AdminDashboard = () => {
     };
 
     const stats = [
-        { title: 'Active Projects', value: dashboardStats?.activeProjects || dashboardStats?.totalActiveProjects || activeProjectsCount.toString(), icon: <HiOutlineHeart /> },
         { title: 'Donations Today', value: `₹${(dashboardStats?.todaysTotalDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineCash /> },
         { title: 'Quick Donations Today', value: `₹${(dashboardStats?.totalQuickDonationsToday || 0).toLocaleString('en-IN')}`, icon: <HiOutlineLightningBolt /> },
-        { title: 'Project Donations Today', value: `₹${(dashboardStats?.totalProjectDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineTrendingUp /> },
+        { title: 'Project Donations Today', value: `₹${(dashboardStats?.totalProjectDonationsToday || dashboardStats?.totalProjectDonations || 0).toLocaleString('en-IN')}`, icon: <HiOutlineTrendingUp /> },
+        { title: 'Monthly Donations Today', value: `₹${(dashboardStats?.totalMonthlyDonationsToday || 0).toLocaleString('en-IN')}`, icon: <HiOutlineCalendar /> },
     ];
 
     return (
@@ -152,7 +142,13 @@ const AdminDashboard = () => {
                     ) : (
                         <div className="">
                             {recentDonations.map((donation, idx) => {
-                                const projectName = donation.Project ? (donation.Project.name || donation.Project.title) : (donation.project ? (donation.project.name || donation.project.title) : 'Quick');
+                                const projectName = (donation.isMonthly || donation.type === 'monthly') 
+                                    ? ((Number(donation.amount) > 1000 && Number(donation.amount) % 1000 === 0) 
+                                        ? `Monthly Donation (1000 * ${donation.count || (Number(donation.amount) / 1000)})` 
+                                        : 'Monthly Donation')
+                                    : (donation.project 
+                                        ? (typeof donation.project === 'string' ? donation.project : (donation.project.name || donation.project.title)) 
+                                        : (donation.Project ? (donation.Project.name || donation.Project.title) : 'Quick Donation'));
                                 const donorName = donation.donorName || donation.name || donation.User?.fullname || donation.user?.fullname || 'Anonymous';
                                 const donorEmail = donation.donorEmail || donation.email || donation.User?.email || donation.user?.email || 'N/A';
 
@@ -164,7 +160,7 @@ const AdminDashboard = () => {
                                         </div>
                                         <p className="text-[10px] text-gray-500 font-medium">{donorEmail}</p>
                                         <div className="flex items-center gap-2">
-                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${(!donation.Project && !donation.project) ? 'bg-gray-100 text-gray-600' : 'bg-black text-white'}`}>
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${(projectName === 'Quick Donation' || projectName === 'Quick') ? 'bg-gray-100 text-gray-600' : 'bg-black text-white'}`}>
                                                 {projectName}
                                             </span>
                                         </div>

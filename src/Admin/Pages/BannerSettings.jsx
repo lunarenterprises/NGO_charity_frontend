@@ -363,6 +363,29 @@ const BannerSettings = () => {
                             </div>
                         ))}
                     </div>
+
+                    {/* Pagination */}
+                    {!loading && meta.totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 pt-6">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="p-2 border border-gray-200 rounded hover:border-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <HiChevronLeft className="w-5 h-5" />
+                            </button>
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-500">
+                                Page {page} of {meta.totalPages}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                                disabled={page === meta.totalPages}
+                                className="p-2 border border-gray-200 rounded hover:border-black transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <HiChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 

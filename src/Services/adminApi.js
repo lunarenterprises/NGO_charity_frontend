@@ -108,7 +108,36 @@ export const getUserDonationsAdminApi = async (userId, params = {}) => {
     return await commonApi("GET", `${BASE_URL}/api/donations/user/${userId}${queryString}`, "", "");
 }
 
+// Get Financial Year Donations (Admin)
+export const getFinancialYearDonationsApi = async (params = {}) => {
+    const { page = 1, limit = 10, year = "" } = params;
+    const queryString = `?page=${page}&limit=${limit}&year=${year}`;
+    return await commonApi("GET", `${BASE_URL}/api/donations/financial-year${queryString}`, "", "");
+}
+
 // Get Dashboard Stats (Admin)
 export const getDashboardStatsApi = async () => {
     return await commonApi("GET", `${BASE_URL}/api/admin/dashboard-stats`, "", "");
+}
+
+// ── Chat APIs ──────────────────────────────────────────────────────
+
+// Get Users who have chatted
+export const getChatUsersApi = async () => {
+    return await commonApi("GET", `${BASE_URL}/api/chat/users`, "", "");
+}
+
+// Get Chat History with a User
+export const getChatHistoryAdminApi = async (userId) => {
+    return await commonApi("GET", `${BASE_URL}/api/chat/history/${userId}`, "", "");
+}
+
+// Upload Chat File
+export const uploadChatFileAdminApi = async (reqBody, header) => {
+    return await commonApi("POST", `${BASE_URL}/api/chat/upload`, reqBody, header);
+}
+
+// Mark Chat as Read
+export const markChatAsReadApi = async (userId) => {
+    return await commonApi("PATCH", `${BASE_URL}/api/chat/mark-read/${userId}`, {}, "");
 }

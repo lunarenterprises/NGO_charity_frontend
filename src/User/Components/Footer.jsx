@@ -9,7 +9,7 @@ import {
 import { addEnquiryApi } from '../../Services/userApi';
 import { showAlert } from '../../Utils/alert';
 
-const Footer = ({ onQuickDonationOpen }) => {
+const Footer = ({ onDonationOpen }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         fullname: '',
@@ -90,7 +90,7 @@ const Footer = ({ onQuickDonationOpen }) => {
                         <li><Link to="/about-us" className="hover:text-white transition-colors">About Us</Link></li>
                         <li>
                             <button
-                                onClick={onQuickDonationOpen}
+                                onClick={onDonationOpen}
                                 className="hover:text-white transition-colors text-left uppercase"
                             >
                                 Donate Now

@@ -4,7 +4,7 @@ export const commonApi = async (method, url, data, header) => {
     let config = {
         method,
         url,
-        headers: header ? header : { "Content-Type": "application/json" }
+        headers: header ? header : (data instanceof FormData ? {} : { "Content-Type": "application/json" })
     }
     if (data) config.data = data;
 
