@@ -122,7 +122,7 @@ const ChatWindow = () => {
         
         // Emit typing
         if (socket) {
-            socket.emit('typing', { receiverId: 1 }); // Fixed ID for admin for now
+            socket.emit('typing', { receiverId: 1, receiverRole: 'admin' }); // Fixed ID for admin for now
         }
     };
 
@@ -171,6 +171,7 @@ const ChatWindow = () => {
                     if (res.status === 200 && res.data?.data) {
                         socket.emit('send_message', {
                             receiverId: 1,
+                            receiverRole: 'admin',
                             content: formatTime(recordingTimeRef.current),
                             messageType: 'voice',
                             fileUrl: res.data.data.fileUrl
@@ -251,6 +252,7 @@ const ChatWindow = () => {
 
             socket.emit('send_message', {
                 receiverId: 1, // the admin's ID
+                receiverRole: 'admin',
                 content,
                 messageType: type,
                 fileUrl

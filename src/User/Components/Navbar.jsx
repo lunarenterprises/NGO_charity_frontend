@@ -32,7 +32,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
     const handleLogout = async () => {
         const result = await showConfirm('Sign Out?', 'Are you sure you want to sign out of your account?');
         if (result.isConfirmed) {
-            logout();
+            logout('user');
             setIsProfileOpen(false);
             setIsMenuOpen(false);
             navigate('/');
@@ -104,7 +104,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                             </div>
                             <button
                                 onClick={() => navigate('/active-projects')}
-                                className={`group flex items-center justify-between w-full text-left px-3 py-3 rounded-xl transition-all ${isActive('/active-projects') ? 'text-black font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-black font-semibold'}`}
+                                className={`group flex items-center justify-between w-full text-left px-3 py-2 rounded-xl transition-all ${isActive('/active-projects') ? 'text-black font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-black font-semibold'}`}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive('/active-projects') ? 'bg-black text-white' : 'bg-gray-100 text-black group-hover:bg-black group-hover:text-white transition-colors'}`}>
@@ -118,7 +118,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                             </button>
                             <button
                                 onClick={() => navigate('/completed-projects')}
-                                className={`group flex items-center justify-between w-full text-left px-3 py-3 rounded-xl transition-all ${isActive('/completed-projects') ? 'text-black font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-black font-semibold'}`}
+                                className={`group flex items-center justify-between w-full text-left px-3 py-2 rounded-xl transition-all ${isActive('/completed-projects') ? 'text-black font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-black font-semibold'}`}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive('/completed-projects') ? 'bg-black text-white' : 'bg-gray-100 text-black group-hover:bg-black group-hover:text-white transition-colors'}`}>

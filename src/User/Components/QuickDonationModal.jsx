@@ -5,6 +5,7 @@ import { IoClose } from 'react-icons/io5';
 import { FaHeart } from 'react-icons/fa';
 import { createQuickDonationOrderApi, verifyQuickDonationPaymentApi } from '../../Services/userApi';
 import { showToast } from '../../Utils/alert';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const QuickDonationModal = ({ onClose }) => {
     const navigate = useNavigate();
@@ -18,21 +19,17 @@ const QuickDonationModal = ({ onClose }) => {
 
     const presets = [250, 500, 1000, 10000];
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                const userObj = JSON.parse(storedUser);
-                setDonorName(userObj.username || userObj.name || '');
-                setDonorEmail(userObj.email || '');
-                setDonorPhone(userObj.phone || '');
-            } catch (err) {
-                console.error("Failed to parse user from local storage", err);
-            }
-        }
-    }, []);
+    const { user, isAuthenticated } = useAuth();
 
-    const isLoggedIn = !!localStorage.getItem('user');
+    useEffect(() => {
+        if (user) {
+            setDonorName(user.username || user.fullname || user.name || '');
+            setDonorEmail(user.email || '');
+            setDonorPhone(user.phone || '');
+        }
+    }, [user]);
+
+    const isLoggedIn = isAuthenticated;
 
     const handleSubmit = async (e) => {
         e.preventDefault();

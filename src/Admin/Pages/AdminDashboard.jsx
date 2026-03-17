@@ -17,7 +17,6 @@ const StatCard = ({ title, value, icon, color }) => (
             <div className="p-2 rounded bg-gray-50 text-black group-hover:bg-black group-hover:text-white transition-colors">
                 {React.cloneElement(icon, { className: "w-5 h-5" })}
             </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">+12%</span>
         </div>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{title}</p>
         <h3 className="text-2xl font-bold text-black">{value}</h3>

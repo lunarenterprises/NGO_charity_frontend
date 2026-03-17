@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../Contexts/AuthContext';
 
 const AdminProtectedRoute = () => {
-    const { isAuthenticated, loading } = useAuth();
+    const { isAdminAuthenticated, loading } = useAuth();
 
     if (loading) {
         return <div className="min-h-screen flex items-center justify-center bg-white">
@@ -10,7 +10,7 @@ const AdminProtectedRoute = () => {
         </div>;
     }
 
-    if (!isAuthenticated) {
+    if (!isAdminAuthenticated) {
         return <Navigate to="/admin/login" replace />;
     }
 

@@ -144,7 +144,7 @@ const AdminLogin = () => {
                         accessToken,
                         refreshToken
                     };
-                    login(user, tokens);
+                    login(user, tokens, 'admin');
                     navigate('/admin');
                 } else {
                     setError(result.response?.data?.message || 'Invalid OTP');

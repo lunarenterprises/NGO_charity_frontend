@@ -5,6 +5,7 @@ import { IoClose } from 'react-icons/io5';
 import { FaHandsHelping } from 'react-icons/fa';
 import { createProjectDonationOrderApi, verifyProjectDonationPaymentApi } from '../../Services/userApi';
 import { showToast } from '../../Utils/alert';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const ProjectDonationModal = ({ isOpen, onClose, project }) => {
     const navigate = useNavigate();
@@ -17,23 +18,19 @@ const ProjectDonationModal = ({ isOpen, onClose, project }) => {
     const portalRoot = document.body;
     const presets = [250, 500, 1000, 5000];
 
+    const { user, isAuthenticated } = useAuth();
+
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-            try {
-                const userObj = JSON.parse(storedUser);
-                setDonorName(userObj.fullname || userObj.username || userObj.name || '');
-                setDonorEmail(userObj.email || '');
-                setDonorPhone(userObj.phone || '');
-            } catch (err) {
-                console.error("ProjectDonationModal: Failed to parse user", err);
-            }
+        if (user) {
+            setDonorName(user.fullname || user.username || user.name || '');
+            setDonorEmail(user.email || '');
+            setDonorPhone(user.phone || '');
         }
-    }, [isOpen]);
+    }, [isOpen, user]);
 
     if (!isOpen || !project) return null;
 
-    const isLoggedIn = !!localStorage.getItem('user');
+    const isLoggedIn = isAuthenticated;
 
     const handleSubmit = async (e) => {
         e.preventDefault();

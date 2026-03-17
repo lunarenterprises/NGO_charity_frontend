@@ -147,7 +147,7 @@ const LoginPopup = ({ onClose }) => {
                     const result = await loginApi({ ...payload, otp: otpValue });
                     if (result.status === 200) {
                         const { accessToken, refreshToken, user } = result.data.data;
-                        login(user, { accessToken, refreshToken });
+                        login(user, { accessToken, refreshToken }, 'user');
 
                         onClose();
                         showAlert("Welcome Back!", "Login successful", "success");

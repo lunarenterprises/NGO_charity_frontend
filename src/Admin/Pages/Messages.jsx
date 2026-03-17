@@ -10,7 +10,7 @@ import { BASE_URL } from '../../Services/baseUrl';
 import { getChatUsersApi, getChatHistoryAdminApi, uploadChatFileAdminApi, markChatAsReadApi } from '../../Services/adminApi';
 
 const Messages = () => {
-    const { accessToken, user: adminData } = useContext(AuthContext);
+    const { adminAccessToken: accessToken, adminStatus: adminData } = useContext(AuthContext);
     const [conversations, setConversations] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);

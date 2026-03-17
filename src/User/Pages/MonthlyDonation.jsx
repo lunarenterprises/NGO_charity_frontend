@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import instance from '../../Services/instance';
 import { createMonthlyDonationOrderApi, verifyMonthlyDonationPaymentApi, getMonthlyDonorStatusApi, createBulkMonthlyDonationOrderApi, verifyBulkMonthlyDonationPaymentApi, enrollAsMonthlyDonorApi } from '../../Services/userApi';
 import { showToast } from '../../Utils/alert';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const FIXED_AMOUNT = 1000;
 
@@ -31,6 +32,7 @@ const benefits = [
 ];
 
 const MonthlyDonation = () => {
+    const { user, accessToken, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -44,8 +46,7 @@ const MonthlyDonation = () => {
 
     useEffect(() => {
         const checkStatus = async () => {
-            const token = localStorage.getItem('accessToken');
-            if (!token) {
+            if (!isAuthenticated) {
                 setInitialLoading(false);
                 return;
             }
@@ -67,7 +68,7 @@ const MonthlyDonation = () => {
             }
         };
         checkStatus();
-    }, [page]);
+    }, [page, isAuthenticated]);
 
     const handleInitialSubmit = (e) => {
         e.preventDefault();
@@ -125,15 +126,11 @@ const MonthlyDonation = () => {
             const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || rawData?.keyId || orderData?.keyId || "rzp_test_SNRWFVH0MOhtgj";
 
             // Get user info for prefill
-            const storedUser = localStorage.getItem('user');
             let donorName = '', donorEmail = '', donorPhone = '';
-            if (storedUser) {
-                try {
-                    const userObj = JSON.parse(storedUser);
-                    donorName = userObj.fullname || userObj.username || userObj.name || '';
-                    donorEmail = userObj.email || '';
-                    donorPhone = userObj.phone || '';
-                } catch (e) { }
+            if (user) {
+                donorName = user.fullname || user.username || user.name || '';
+                donorEmail = user.email || '';
+                donorPhone = user.phone || '';
             }
 
             const options = {

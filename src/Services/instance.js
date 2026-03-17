@@ -25,12 +25,39 @@ const getRefreshUrl = () => {
     return isAdmin ? `${BASE_URL}/api/admin/refresh-token` : `${BASE_URL}/api/user/refresh-token`;
 };
 
+// Helper to get auth data from the right key
+const getAuthData = () => {
+    const isAdmin = window.location.pathname.startsWith('/admin');
+    const key = isAdmin ? 'admin' : 'user';
+    try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+const saveAccessToken = (token) => {
+    const isAdmin = window.location.pathname.startsWith('/admin');
+    const key = isAdmin ? 'admin' : 'user';
+    try {
+        const data = localStorage.getItem(key);
+        if (data) {
+            const parsed = JSON.parse(data);
+            parsed.accessToken = token;
+            localStorage.setItem(key, JSON.stringify(parsed));
+        }
+    } catch (e) {
+        console.error("Failed to save refreshed token", e);
+    }
+};
+
 // Request interceptor
 instance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+        const auth = getAuthData();
+        if (auth && auth.accessToken) {
+            config.headers['Authorization'] = `Bearer ${auth.accessToken}`;
         }
         return config;
     },
@@ -82,7 +109,7 @@ async function handleTokenRefresh(originalRequest) {
                 const newToken = payload.data.accessToken;
 
                 // Update frontend stored accessToken
-                localStorage.setItem('accessToken', newToken);
+                saveAccessToken(newToken);
 
                 // Update default instance headers
                 instance.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
@@ -117,15 +144,16 @@ async function handleTokenRefresh(originalRequest) {
 }
 
 function forceLogout() {
-    localStorage.removeItem('user');
-    localStorage.removeItem('accessToken');
+    const isAdmin = window.location.pathname.startsWith('/admin');
+    localStorage.removeItem(isAdmin ? 'admin' : 'user');
+    
     // Refresh token is handled/cleared by backend; frontend does not remove it manually
     window.dispatchEvent(new Event('auth_logout'));
 
     // Adaptive redirect logic based on app side
-    if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+    if (isAdmin && window.location.pathname !== '/admin/login') {
         window.location.href = '/admin/login';
-    } else if (!window.location.pathname.startsWith('/admin') && window.location.pathname !== '/') {
+    } else if (!isAdmin && window.location.pathname !== '/') {
         window.location.href = '/';
     }
 }
