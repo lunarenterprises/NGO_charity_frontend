@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom';
 import { HiCheckCircle, HiArrowRight, HiCalendar } from 'react-icons/hi';
 import { useEffect } from 'react';
 import { clearRazorpayLocalData } from '../../Utils/razorpayUtils';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const MonthlyDonationSuccess = ({ amount, transactionId }) => {
+    const { isAuthenticated } = useAuth();
 
     useEffect(() => {
         clearRazorpayLocalData();
@@ -75,12 +77,14 @@ const MonthlyDonationSuccess = ({ amount, transactionId }) => {
                                 Back to Home
                                 <HiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <Link
-                                to="/monthly-donation"
-                                className="px-8 py-4 bg-white border-2 border-black text-black font-black rounded-2xl hover:bg-gray-50 transition-all transform hover:-translate-y-1 text-center text-sm uppercase tracking-widest"
-                            >
-                                View My Plan
-                            </Link>
+                            {isAuthenticated && (
+                                <Link
+                                    to="/monthly-donation"
+                                    className="px-8 py-4 bg-white border-2 border-black text-black font-black rounded-2xl hover:bg-gray-50 transition-all transform hover:-translate-y-1 text-center text-sm uppercase tracking-widest"
+                                >
+                                    View My Plan
+                                </Link>
+                            )}
                         </div>
                     </div>
 

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useOutletContext } from 'react-router-dom';
 import { getProjectDetailsApi } from '../../Services/userApi';
 import { HiOutlinePlay } from 'react-icons/hi';
 import ProjectDonationModal from '../Components/ProjectDonationModal';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80';
 
 const ProjectDetails = () => {
     const { id } = useParams();
+    const { isAuthenticated } = useAuth();
+    const { onRequireLogin } = useOutletContext();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -193,7 +196,13 @@ const ProjectDetails = () => {
 
                             {project.status !== 'completed' ? (
                                 <button
-                                    onClick={() => setIsDonationModalOpen(true)}
+                                    onClick={() => {
+                                        if (!isAuthenticated) {
+                                            onRequireLogin();
+                                        } else {
+                                            setIsDonationModalOpen(true);
+                                        }
+                                    }}
                                     className="w-full py-3 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-900 transition-colors shadow-lg mb-4"
                                 >
                                     Donate Now

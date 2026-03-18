@@ -2,8 +2,10 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { HiCheckCircle, HiArrowRight } from 'react-icons/hi';
 import { clearRazorpayLocalData } from '../../Utils/razorpayUtils';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const QuickDonationSuccess = ({ amount, transactionId }) => {
+    const { isAuthenticated } = useAuth();
 
     useEffect(() => {
         clearRazorpayLocalData();
@@ -72,12 +74,14 @@ const QuickDonationSuccess = ({ amount, transactionId }) => {
                                 Back to Home
                                 <HiArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <Link
-                                to="/transactions"
-                                className="px-8 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl hover:bg-white/10 transition-all transform hover:-translate-y-1 text-center text-sm uppercase tracking-widest"
-                            >
-                                View History
-                            </Link>
+                            {isAuthenticated && (
+                                <Link
+                                    to="/transactions"
+                                    className="px-8 py-4 bg-white/5 border border-white/10 text-white font-black rounded-2xl hover:bg-white/10 transition-all transform hover:-translate-y-1 text-center text-sm uppercase tracking-widest"
+                                >
+                                    View History
+                                </Link>
+                            )}
                         </div>
                     </div>
 

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { getActiveProjectsApi } from '../../Services/userApi';
 import ProjectDonationModal from '../Components/ProjectDonationModal';
+import { useAuth } from '../../Contexts/AuthContext';
 
 const ActiveProjects = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
+    const { onRequireLogin } = useOutletContext();
 
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,6 +36,10 @@ const ActiveProjects = () => {
 
     const handleDonateClick = (e, project) => {
         e.stopPropagation();
+        if (!isAuthenticated) {
+            onRequireLogin();
+            return;
+        }
         setSelectedProject(project);
         setIsDonationModalOpen(true);
     };
