@@ -39,7 +39,7 @@ const Profile = () => {
                 const pageWidth = doc.internal.pageSize.width;
 
                 // --- Header Section ---
-                // NGO Branding
+                // Yashfi Foundation Branding
                 doc.setFontSize(22);
                 doc.setFont("helvetica", "bold");
                 doc.text("Yashfi Foundation", 20, 25);
@@ -47,7 +47,7 @@ const Profile = () => {
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "normal");
                 doc.text("Empowering Communities, Changing Lives", 20, 32);
-                doc.text("Email: info@yashfi.org | Web: ngocharity.lunarenterprises.co.in", 20, 37);
+                doc.text("Email: info@yashfi.org | Web: yashfi.foundation", 20, 37);
 
                 // Divider
                 doc.setDrawColor(0);

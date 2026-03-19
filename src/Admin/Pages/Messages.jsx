@@ -1,19 +1,22 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { PiChatCircleDotsBold, PiPaperPlaneTiltBold } from 'react-icons/pi';
-import { IoSearchOutline, IoCheckmarkDoneOutline, IoArrowBack, IoAttach, IoDocumentTextOutline } from 'react-icons/io5';
-import { MdOutlineSupportAgent, MdClose } from 'react-icons/md';
-import { PiMicrophoneBold, PiSpeakerHighBold, PiPlayCircleBold, PiPauseCircleBold, PiImageSquareBold } from 'react-icons/pi';
+import { IoSend, IoAttach, IoMicOutline, IoMicOffOutline, IoCheckmarkDoneOutline, IoEllipsisVertical, IoClose, IoTrashOutline, IoSearchOutline, IoArrowBack, IoDocumentTextOutline, IoCopyOutline } from 'react-icons/io5';
+import { MdOutlineSupportAgent, MdDeleteOutline, MdClose } from 'react-icons/md';
+import { PiChatCircleDotsBold, PiPaperPlaneTiltBold, PiMicrophoneBold, PiSpeakerHighBold, PiPlayCircleBold, PiPauseCircleBold, PiImageSquareBold } from 'react-icons/pi';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { AuthContext } from '../../Contexts/AuthContext';
 import { BASE_URL } from '../../Services/baseUrl';
-import { getChatUsersApi, getChatHistoryAdminApi, uploadChatFileAdminApi, markChatAsReadApi } from '../../Services/adminApi';
+import Swal from 'sweetalert2';
+import { getChatUsersApi, getChatHistoryAdminApi, uploadChatFileAdminApi, markChatAsReadApi, deleteChatMessageAdminApi } from '../../Services/adminApi';
+import MediaModal from '../../Components/MediaModal';
 
 const Messages = () => {
     const { adminAccessToken: accessToken, adminStatus: adminData } = useContext(AuthContext);
     const [conversations, setConversations] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);
+    const [onlineUsers, setOnlineUsers] = useState(new Set());
+    const [lastSeenData, setLastSeenData] = useState({});
     const [input, setInput] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
@@ -24,6 +27,8 @@ const Messages = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [socket, setSocket] = useState(null);
     const [isSending, setIsSending] = useState(false);
+    const [previewMedia, setPreviewMedia] = useState({ isOpen: false, url: '', type: '', name: '' });
+    const [activeActionMenu, setActiveActionMenu] = useState(null); // stores messageId
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -70,6 +75,23 @@ const Messages = () => {
 
         newSocket.on('connect', () => {
             console.log('Socket connected Admin:', newSocket.id);
+            newSocket.emit("get_online_users");
+        });
+
+        newSocket.on("online_users_list", (users) => {
+            setOnlineUsers(new Set(users.map(u => u.toString())));
+        });
+
+        newSocket.on("user_status", ({ userId, status, lastSeen }) => {
+            setOnlineUsers(prev => {
+                const next = new Set(prev);
+                if (status === "online") next.add(userId.toString());
+                else next.delete(userId.toString());
+                return next;
+            });
+            if (lastSeen) {
+                setLastSeenData(prev => ({ ...prev, [userId.toString()]: lastSeen }));
+            }
         });
 
         newSocket.on('connect_error', (err) => {
@@ -176,10 +198,81 @@ const Messages = () => {
         fetchHistory();
     }, [activeChat, accessToken]);
 
+    // Close menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (!e.target.closest('.action-menu-container') && !e.target.closest('.action-modal')) {
+                setActiveActionMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     // Scroll to bottom when new messages are added
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    const formatChatDate = (date) => {
+        const d = new Date(date);
+        const now = new Date();
+        const diff = now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0);
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        if (diff === 0) return "Today";
+        if (diff === oneDay) return "Yesterday";
+        if (diff < 7 * oneDay) {
+            return d.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const handleCopyMessage = (content) => {
+        if (!content) return;
+        navigator.clipboard.writeText(content);
+        setActiveActionMenu(null);
+        Swal.fire({
+            title: 'Copied!',
+            text: 'Message copied to clipboard.',
+            icon: 'success',
+            timer: 1000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Delete Message?',
+                text: "This will remove the message content for everyone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#000',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            });
+
+            if (result.isConfirmed) {
+                const response = await deleteChatMessageAdminApi(messageId);
+
+                if (response?.data?.success) {
+                    // Optimized state update: Mark as deleted locally
+                    setMessages(prev => prev.map(m => 
+                        (m.id === messageId || m._id === messageId) 
+                            ? { ...m, isDeleted: true, content: "This message was deleted", messageType: 'text', fileUrl: null } 
+                            : m
+                    ));
+                    
+                }
+            }
+        } catch (err) {
+            console.error("Delete failed:", err);
+            Swal.fire('Error', 'Failed to delete message. Please try again.', 'error');
+        }
+    };
 
     // Format recording time
     const formatTime = (seconds) => {
@@ -455,11 +548,14 @@ const Messages = () => {
                         ) : (
                             <PiImageSquareBold className="w-8 h-8 text-gray-400" />
                         )}
-                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                        <div 
+                            onClick={() => setPreviewMedia({ isOpen: true, url: msg.fileUrl, type: 'image', name: 'Image' })}
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg cursor-pointer"
+                        >
                             <span className="text-white text-xs font-semibold px-3 py-1.5 bg-black/50 rounded-full backdrop-blur-sm hover:bg-black/70 transition-colors">
                                 View Full
                             </span>
-                        </a>
+                        </div>
                     </div>
                 </div>
             );
@@ -467,15 +563,18 @@ const Messages = () => {
 
         if (msg.messageType === 'pdf') {
             return (
-                <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 min-w-[200px] hover:border-black/10 transition-colors group text-left">
+                <div 
+                    onClick={() => setPreviewMedia({ isOpen: true, url: msg.fileUrl, type: 'pdf', name: 'PDF Document' })}
+                    className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 min-w-[200px] hover:border-black/10 transition-colors group text-left cursor-pointer"
+                >
                     <div className="w-10 h-10 rounded bg-red-50 text-red-500 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
                         <IoDocumentTextOutline className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">PDF Document</p>
-                        <p className="text-[10px] text-gray-500">Click to view</p>
+                        <p className="text-[10px] text-gray-500 hover:underline">Click to preview</p>
                     </div>
-                </a>
+                </div>
             );
         }
 
@@ -620,7 +719,11 @@ const Messages = () => {
                                         (chat.fullname || chat.name || 'U').charAt(0).toUpperCase()
                                     )}
                                 </div>
-                                {/* Online indicator logic could be added here if backend supports presence */}
+                                {onlineUsers.has((chat._id || chat.id)?.toString()) && (
+                                    <span className={`absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 ${
+                                        (activeChat?._id || activeChat?.id) === (chat._id || chat.id) ? 'border-black' : 'border-white'
+                                    }`}></span>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-center mb-0.5">
@@ -640,15 +743,9 @@ const Messages = () => {
                                         (activeChat?._id || activeChat?.id) === (chat._id || chat.id) ? 'text-gray-300' : 'text-gray-500'
                                     } ${chat.unread > 0 && (activeChat?._id || activeChat?.id) !== (chat._id || chat.id) ? 'font-semibold text-black' : ''}`}>
                                         {chat.lastMessageType === 'image' || chat.lastMessage === 'Image' ? (
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
-                                                    {chat.lastMessageUrl ? (
-                                                        <img src={chat.lastMessageUrl} alt="preview" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <PiImageSquareBold className="w-full h-full p-1.5 text-gray-400" />
-                                                    )}
-                                                </div>
-                                                <span className="truncate">Image</span>
+                                            <div className="flex items-center gap-1.5 py-0.5">
+                                                <PiImageSquareBold className="w-4 h-4 shrink-0 text-green-500" />
+                                                <span className="truncate text-green-500 font-medium">Image</span>
                                             </div>
                                         ) : chat.lastMessageType === 'voice' || (chat.lastMessage && chat.lastMessage.match(/^\d+:\d{2}$/)) ? (
                                             <div className="flex items-center gap-1.5 py-0.5">
@@ -704,9 +801,13 @@ const Messages = () => {
                             </div>
                             <div>
                                 <h3 className="font-bold text-gray-900 leading-tight">{activeChat.fullname || activeChat.name}</h3>
-                                <p className="text-xs text-green-600 font-medium">
-                                    {/* Online indicator placeholder */} 
-                                    Online
+                                <p className={`text-xs font-medium ${onlineUsers.has(activeChat?._id?.toString() || activeChat?.id?.toString()) ? 'text-green-500' : 'text-gray-500'}`}>
+                                    {onlineUsers.has(activeChat?._id?.toString() || activeChat?.id?.toString()) 
+                                        ? 'Online' 
+                                        : lastSeenData[activeChat?._id?.toString() || activeChat?.id?.toString()]
+                                            ? `Last seen: ${new Date(lastSeenData[activeChat?._id?.toString() || activeChat?.id?.toString()]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                            : 'Offline'
+                                    }
                                 </p>
                             </div>
                         </div>
@@ -722,52 +823,107 @@ const Messages = () => {
                                 No messages in this conversation yet. Send a message to start!
                             </div>
                         )}
-                        {messages.map((msg) => 
-                            msg.senderRole === 'user' ? (
-                                /* Left (User) Message */
-                                <div key={msg.id} className="flex items-end gap-2 self-start max-w-[70%]">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
-                                        {activeChat.profilePic ? (
-                                            <img src={activeChat.profilePic} alt="User" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="text-gray-700 text-xs font-bold">{(activeChat.fullname || 'U').charAt(0).toUpperCase()}</span>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
-                                            ['image', 'pdf'].includes(msg.messageType) 
-                                                ? 'bg-transparent shadow-none p-0' 
-                                                : msg.messageType === 'voice' ? 'bg-white shadow-md border-black/5' : 'bg-white text-gray-800'
-                                        }`}>
-                                            {renderMessageContent(msg)}
+                        {messages.map((msg, index) => {
+                            const msgDate = formatChatDate(msg.createdAt);
+                            const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
+                            const showSeparator = msgDate !== prevMsgDate;
+
+                            return (
+                                <React.Fragment key={msg.id}>
+                                    {showSeparator && (
+                                        <div className="flex justify-center my-6 relative">
+                                            <div className="absolute inset-x-0 top-1/2 h-px bg-linear-to-r from-transparent via-gray-300 to-transparent" />
+                                            <span className="relative bg-[#f0f2f5] px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                                                {msgDate}
+                                            </span>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 mt-1 ml-1">{new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                    </div>
-                                </div>
-                            ) : (
-                                /* Right (Admin/Support) Message */
-                                <div key={msg.id} className="flex items-end gap-2 self-end max-w-[70%] flex-row-reverse">
-                                    <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
-                                        <MdOutlineSupportAgent className="w-4 h-4 text-white" />
-                                    </div>
-                                    <div className="flex flex-col items-end">
-                                        <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
-                                            ['image', 'pdf', 'voice'].includes(msg.messageType)
-                                                ? msg.messageType === 'voice' 
-                                                    ? 'bg-blue-600 text-white shadow-md border-0' // Distinct background for sent voice note
-                                                    : 'bg-transparent shadow-none p-0'
-                                                : 'bg-black text-white'
-                                        }`}>
-                                            {renderMessageContent(msg)}
+                                    )}
+
+                                    {msg.senderRole === 'user' ? (
+                                        /* Left (User) Message */
+                                        <div className="flex items-end gap-2 self-start max-w-[70%] group">
+                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden shadow-sm border border-white">
+                                                {activeChat.profilePic ? (
+                                                    <img src={activeChat.profilePic} alt="User" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-gray-700 text-xs font-bold">{(activeChat.fullname || 'U').charAt(0).toUpperCase()}</span>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 text-sm leading-relaxed transition-all ${
+                                                    msg.isDeleted 
+                                                        ? 'bg-gray-100 text-gray-400 italic border border-gray-200' 
+                                                        : ['image', 'pdf'].includes(msg.messageType) 
+                                                            ? 'bg-transparent shadow-none p-0' 
+                                                            : msg.messageType === 'voice' ? 'bg-white shadow-md border-black/5' : 'bg-white text-gray-800 border border-gray-100 shadow-sm'
+                                                }`}>
+                                                    {msg.isDeleted ? (
+                                                        <div className="flex items-center gap-2 py-1">
+                                                            <IoTrashOutline className="opacity-50" />
+                                                            <span>This message was deleted</span>
+                                                        </div>
+                                                    ) : (
+                                                        renderMessageContent(msg)
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 mt-1 ml-1 font-medium opacity-70">
+                                                    {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-1 mt-1 mr-1">
-                                            <p className="text-[10px] text-gray-400">{new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                            {msg.isRead && <IoCheckmarkDoneOutline className="w-3.5 h-3.5 text-blue-500" />}
+                                    ) : (
+                                        /* Right (Admin/Support) Message */
+                                        <div className="flex items-end gap-2 self-end max-w-[70%] flex-row-reverse group">
+                                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0 shadow-sm border border-white/10">
+                                                <MdOutlineSupportAgent className="w-4 h-4 text-white" />
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed transition-all relative ${
+                                                    msg.isDeleted 
+                                                        ? 'bg-gray-100 text-gray-400 italic border border-gray-200'
+                                                        : ['image', 'pdf', 'voice'].includes(msg.messageType)
+                                                            ? msg.messageType === 'voice' 
+                                                                ? 'bg-blue-600 text-white shadow-md border-0' 
+                                                                : 'bg-transparent shadow-none p-0'
+                                                            : 'bg-black text-white hover:bg-gray-900 shadow-lg'
+                                                }`}>
+                                                    {msg.isDeleted ? (
+                                                        <div className="flex items-center gap-2 py-1">
+                                                            <span>This message was deleted</span>
+                                                            <IoTrashOutline className="opacity-50" />
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {renderMessageContent(msg)}
+                                                            
+                                                            {/* Actions Menu Trigger */}
+                                                            <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setActiveActionMenu(msg);
+                                                                    }}
+                                                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                                    title="Message actions"
+                                                                >
+                                                                    <IoEllipsisVertical className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-1 mr-1">
+                                                    <p className="text-[10px] text-gray-400 font-medium opacity-70">
+                                                        {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                    {msg.isRead && <IoCheckmarkDoneOutline className="w-3.5 h-3.5 text-blue-500" />}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )
-                        )}
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
                         <div ref={bottomRef} className="h-1" />
                     </div>
 
@@ -888,7 +1044,57 @@ const Messages = () => {
                     0%, 100% { transform: scaleY(1); }
                     50% { transform: scaleY(1.5); }
                 }
-            `}</style>
+            `}</style>            {/* Media Preview Modal */}
+            <MediaModal 
+                isOpen={previewMedia.isOpen}
+                onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
+                mediaUrl={previewMedia.url}
+                mediaType={previewMedia.type}
+                mediaName={previewMedia.name}
+            />
+
+            {/* Actions Centered Modal */}
+            {activeActionMenu && (
+                <div 
+                    className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setActiveActionMenu(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-xl w-72 overflow-hidden transform transition-all scale-100 action-modal"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-800">Message Options</h3>
+                            <button onClick={() => setActiveActionMenu(null)} className="text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 hover:bg-gray-200">
+                                <MdClose className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-2 flex flex-col gap-1">
+                            <button 
+                                onClick={() => handleCopyMessage(activeActionMenu.content)}
+                                className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl flex items-center gap-3 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center shrink-0">
+                                    <IoCopyOutline className="w-4 h-4" />
+                                </div>
+                                Copy text
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleDeleteMessage(activeActionMenu.id || activeActionMenu._id);
+                                    setActiveActionMenu(null);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                                    <IoTrashOutline className="w-4 h-4" />
+                                </div>
+                                Delete for Everyone
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -60,6 +60,7 @@ function App() {
             <Route path="active-projects" element={<AdminActiveProjects />} />
             <Route path="active-projects/:id" element={<AdminProjectDetails />} />
             <Route path="completed-projects" element={<AdminCompletedProjects />} />
+            <Route path="completed-projects/:id" element={<AdminProjectDetails />} />
             <Route path="recent-transactions" element={<RecentTransactions />} />
             <Route path="enquiries" element={<Enquiries />} />
             <Route path="users" element={<Users />} />

@@ -138,7 +138,7 @@ const RecentTransactions = () => {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-bold text-black tracking-tight">Recent Transactions</h1>
-                        <p className="text-sm text-gray-500">Comprehensive log of all NGO contributions.</p>
+                        <p className="text-sm text-gray-500">Comprehensive log of all Yashfi Foundation contributions.</p>
                     </div>
                 </div>
             </div>

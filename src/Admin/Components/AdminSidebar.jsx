@@ -16,7 +16,7 @@ import {
 import { useAuth } from '../../Contexts/AuthContext';
 import { showConfirm } from '../../Utils/alert';
 
-const AdminSidebar = ({ isOpen, onClose }) => {
+const AdminSidebar = ({ isOpen, onClose, unreadCount = 0 }) => {
     const { logout } = useAuth();
     const navigate = useNavigate();
 
@@ -84,7 +84,12 @@ const AdminSidebar = ({ isOpen, onClose }) => {
                                 }
                             >
                                 {item.icon}
-                                <span className="ml-3">{item.title}</span>
+                                <span className="ml-3 flex-1">{item.title}</span>
+                                {item.title === 'Messages' && unreadCount > 0 && (
+                                    <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-white text-black text-[10px] font-bold rounded-full flex items-center justify-center">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                    </span>
+                                )}
                             </NavLink>
                         ))}
                     </nav>

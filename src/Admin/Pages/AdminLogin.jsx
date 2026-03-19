@@ -346,7 +346,7 @@ const AdminLogin = () => {
 
                     <div className="pt-8 border-t border-gray-200">
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center">
-                            &copy; 2026 NGO Cloud Connect. All rights reserved.
+                            &copy; 2026 Yashfi Foundation. All rights reserved.
                         </p>
                     </div>
                 </div>

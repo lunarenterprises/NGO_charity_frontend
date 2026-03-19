@@ -4,12 +4,18 @@ import FeaturedCampaigns from './FeaturedCampaigns';
 import CompletedProjects from './CompletedProjects';
 import { getActiveBannersApi } from '../../Services/adminApi';
 import { Link } from 'react-router-dom';
+import LoadingScreen from '../../Components/LoadingScreen';
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80";
 
 function LandingPage({ onQuickDonationOpen }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [banners, setBanners] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [featuredLoaded, setFeaturedLoaded] = useState(false);
+  const [completedLoaded, setCompletedLoaded] = useState(false);
 
   useEffect(() => {
     const fetchBanners = async () => {
@@ -22,10 +28,29 @@ function LandingPage({ onQuickDonationOpen }) {
         }
       } catch (error) {
         console.error('Failed to fetch banners for landing page:', error);
+      } finally {
+        setDataLoaded(true);
       }
     };
     fetchBanners();
   }, []);
+
+  useEffect(() => {
+    // If no banners, we should not block on images
+    if (dataLoaded && banners.length === 0) {
+      setImageLoaded(true);
+    }
+  }, [dataLoaded, banners.length]);
+
+  useEffect(() => {
+    if (dataLoaded && imageLoaded && featuredLoaded && completedLoaded) {
+      // Add a tiny delay for smoother transition
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [dataLoaded, imageLoaded, featuredLoaded, completedLoaded]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -39,6 +64,8 @@ function LandingPage({ onQuickDonationOpen }) {
 
   return (
     <div className="min-h-screen font-sans">
+      <LoadingScreen isVisible={loading} />
+      
       {/* Hero Section */}
       <div className="relative w-full min-h-[600px] h-auto md:h-[700px] bg-black overflow-hidden">
         {/* Background Image Carousel */}
@@ -56,7 +83,13 @@ function LandingPage({ onQuickDonationOpen }) {
                   src={banner.imageUrl || banner.url}
                   alt={`Hero background ${index + 1}`}
                   className="object-cover w-full h-full opacity-50"
-                  onError={e => { e.target.src = FALLBACK_IMAGE; }}
+                  onLoad={() => {
+                    if (index === 0) setImageLoaded(true);
+                  }}
+                  onError={e => { 
+                    e.target.src = FALLBACK_IMAGE; 
+                    if (index === 0) setImageLoaded(true);
+                  }}
                 />
               </div>
             ))
@@ -121,8 +154,8 @@ function LandingPage({ onQuickDonationOpen }) {
 
       <StatsSection />
 
-      <FeaturedCampaigns />
-      <CompletedProjects />
+      <FeaturedCampaigns onLoad={() => setFeaturedLoaded(true)} />
+      <CompletedProjects onLoad={() => setCompletedLoaded(true)} />
     </div>
 
   );

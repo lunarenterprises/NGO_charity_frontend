@@ -155,7 +155,7 @@ const Footer = ({ onDonationOpen }) => {
             {/* Bottom Bar */}
             <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-gray-900 flex flex-col md:flex-row justify-between items-center gap-6">
                 <p className="text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em]">
-                    © 2026 NGO Charity Organization. Empowering Change.
+                    © 2026 Yashfi Foundation. Empowering Change.
                 </p>
                 <div className="flex gap-8 text-[10px] font-bold text-gray-600 uppercase tracking-[0.2em]">
                     <a href="#" className="hover:text-white transition-colors">Privacy</a>

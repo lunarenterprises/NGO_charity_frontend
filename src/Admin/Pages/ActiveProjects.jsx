@@ -202,7 +202,7 @@ const ActiveProjects = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-black tracking-tight">Active Projects</h1>
                     <p className="text-sm text-gray-500 mt-1">
-                        Monitor and manage ongoing NGO initiatives.
+                        Monitor and manage ongoing Yashfi Foundation initiatives.
                         {!loading && meta.total > 0 && (
                             <span className="ml-2 text-xs font-black uppercase tracking-widest text-gray-400">
                                 ({meta.total} total)
@@ -236,7 +236,9 @@ const ActiveProjects = () => {
                                         onError={e => { e.target.src = FALLBACK_IMAGE; }}
                                     />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-                                        <button className="p-2.5 bg-white text-black rounded shadow-md hover:bg-gray-100 transition-colors">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); navigate(`/admin/active-projects/${project.id || project._id}?edit=true`); }}
+                                            className="p-2.5 bg-white text-black rounded shadow-md hover:bg-gray-100 transition-colors">
                                             <HiOutlinePencilAlt className="w-5 h-5" />
                                         </button>
                                         <button

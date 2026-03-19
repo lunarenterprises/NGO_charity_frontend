@@ -4,7 +4,7 @@ import { getActiveProjectsApi } from '../../Services/userApi';
 import ProjectDonationModal from './ProjectDonationModal';
 import { useAuth } from '../../Contexts/AuthContext';
 
-const FeaturedCampaigns = () => {
+const FeaturedCampaigns = ({ onLoad }) => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const { onRequireLogin } = useOutletContext();
@@ -25,10 +25,11 @@ const FeaturedCampaigns = () => {
                 console.error("Failed to fetch featured campaigns:", err);
             } finally {
                 setLoading(false);
+                if (onLoad) onLoad();
             }
         };
         fetchProjects();
-    }, []);
+    }, [onLoad]);
 
     const handleDonateClick = (e, project) => {
         e.stopPropagation();

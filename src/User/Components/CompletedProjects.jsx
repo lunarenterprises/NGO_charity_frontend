@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCompletedProjectsApi } from '../../Services/userApi';
 
-const CompletedProjects = () => {
+const CompletedProjects = ({ onLoad }) => {
     const navigate = useNavigate();
 
     const [projects, setProjects] = useState([]);
@@ -20,10 +20,11 @@ const CompletedProjects = () => {
                 console.error("Failed to fetch completed projects:", err);
             } finally {
                 setLoading(false);
+                if (onLoad) onLoad();
             }
         };
         fetchProjects();
-    }, []);
+    }, [onLoad]);
 
     const firstImage = (project) => {
         let imgs = project.projectImages;

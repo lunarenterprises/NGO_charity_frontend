@@ -94,7 +94,7 @@ const AdminDashboard = () => {
             {/* Header section */}
             <div className="flex flex-col gap-2 border-b border-gray-100">
                 <h1 className="text-2xl font-bold text-black tracking-tight">Dashboard Overview</h1>
-                <p className="text-sm text-gray-500">Manage your NGO activities and monitor impact.</p>
+                <p className="text-sm text-gray-500">Manage your Yashfi Foundation activities and monitor impact.</p>
             </div>
 
             {/* Stats Grid */}

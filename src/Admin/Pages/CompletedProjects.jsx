@@ -163,7 +163,7 @@ const CompletedProjects = () => {
                                 {/* Actions */}
                                 <div className="px-6 pb-6 mt-auto flex gap-3">
                                     <button
-                                        onClick={() => navigate(`/admin/active-projects/${project.id || project._id}`)}
+                                        onClick={() => navigate(`/admin/completed-projects/${project.id || project._id}`)}
                                         className="grow py-2.5 bg-gray-100 text-black text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all rounded shadow-sm flex items-center justify-center gap-2"
                                     >
                                         <HiOutlineEye className="w-4 h-4" />

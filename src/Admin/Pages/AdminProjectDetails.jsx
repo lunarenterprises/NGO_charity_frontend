@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     HiOutlineArrowLeft,
     HiOutlinePencilAlt,
@@ -13,6 +13,8 @@ import {
 } from 'react-icons/hi';
 import { getProjectByIdApi, deleteProjectApi, markProjectCompleteApi, updateProjectApi, getProjectDonationsApi } from '../../Services/adminApi';
 import { showToast, showConfirm } from '../../Utils/alert';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=80';
 
@@ -25,6 +27,7 @@ const AdminProjectDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -121,6 +124,14 @@ const AdminProjectDetails = () => {
         fetchProjectDonations();
     }, [fetchProjectDonations]);
 
+    // ── Auto-open edit modal from ?edit=true URL param ───────────────
+    useEffect(() => {
+        if (project && searchParams.get('edit') === 'true') {
+            openEditModal();
+            setSearchParams({}, { replace: true }); // Clean up URL
+        }
+    }, [project, searchParams]);
+
     // ── Scroll to anchor ─────────────────────────────────────────────
     useEffect(() => {
         if (location.hash === '#recent-contributions') {
@@ -161,6 +172,113 @@ const AdminProjectDetails = () => {
     };
 
     const isVideoActive = activeMedia?.type === 'video';
+
+    // ── Download Revenue Report as PDF ───────────────────────────────
+    const handleDownloadReport = async () => {
+        try {
+            showToast('Generating PDF report...', 'info');
+
+            // Fetch ALL donation pages
+            let allDonors = [];
+            let pg = 1;
+            let totalPgs = 1;
+            do {
+                const res = await getProjectDonationsApi(id, { page: pg, limit: 100 });
+                const d = res?.data?.data || [];
+                allDonors = [...allDonors, ...d];
+                totalPgs = res?.data?.meta?.totalPages || res?.data?.pagination?.totalPages || 1;
+                pg++;
+            } while (pg <= totalPgs);
+
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+
+            // Header bar
+            doc.setFillColor(0, 0, 0);
+            doc.rect(0, 0, pageWidth, 28, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Revenue Report', 14, 12);
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Project: ${project?.name || 'N/A'}`, 14, 20);
+            doc.text(`Generated: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}`, pageWidth - 14, 20, { align: 'right' });
+
+            // Summary stats
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+
+            const raised = parseFloat(project?.currentAmount) || 0;
+            const target = parseFloat(project?.targetAmount) || 0;
+            const progress = target > 0 ? Math.min(Math.round((raised / target) * 100), 100) : 0;
+            const grandTotal = allDonors.reduce((acc, d) => acc + Number(d.amount || 0), 0);
+
+            const stats = [
+                ['Total Donors', allDonors.length],
+                ['Total Raised', `₹${raised.toLocaleString('en-IN')}`],
+                ['Target Amount', `₹${target.toLocaleString('en-IN')}`],
+                ['Progress', `${progress}%`],
+            ];
+
+            autoTable(doc, {
+                startY: 34,
+                body: stats,
+                theme: 'plain',
+                styles: { fontSize: 10, cellPadding: 3 },
+                columnStyles: { 0: { fontStyle: 'bold', cellWidth: 50 }, 1: { cellWidth: 60 } },
+                margin: { left: 14 },
+            });
+
+            // Donor table
+            const tableY = doc.lastAutoTable.finalY + 10;
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Donation Details', 14, tableY);
+
+            const rows = allDonors.map((donor, i) => [
+                i + 1,
+                donor.donorName || donor.name || donor.User?.fullname || 'Anonymous',
+                donor.donorPhone || donor.phone || donor.user?.phone || donor.User?.phone || 'N/A',
+                `₹${Number(donor.amount || 0).toLocaleString('en-IN')}`,
+            ]);
+
+            autoTable(doc, {
+                startY: tableY + 5,
+                head: [['#', 'Name', 'Phone', 'Amount']],
+                body: rows,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+                bodyStyles: { fontSize: 9 },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 80 },
+                    2: { cellWidth: 50 },
+                    3: { cellWidth: 40, halign: 'right', charSpace: -0.2 },
+                },
+                margin: { left: 14, right: 14 }
+            });
+
+            // Grand Total footer
+            const finalY = doc.lastAutoTable.finalY + 8;
+            doc.setFillColor(0, 0, 0);
+            doc.rect(14, finalY, pageWidth - 28, 10, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('GRAND TOTAL', 18, finalY + 6.5);
+            doc.text(`₹${grandTotal.toLocaleString('en-IN')}`, pageWidth - 18, finalY + 6.5, { align: 'right' });
+
+            doc.save(`${project?.name?.replace(/\s+/g, '_') || 'project'}_revenue_report.pdf`);
+        } catch (err) {
+            console.error('PDF generation error:', err);
+            showToast('Failed to generate report. Please try again.', 'error');
+        }
+    };
 
     // ── Delete handler ───────────────────────────────────────────
     const handleDelete = async () => {
@@ -320,7 +438,7 @@ const AdminProjectDetails = () => {
             {/* Top Nav */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-8">
                 <div className="flex items-center gap-4">
-                    <Link to="/admin/active-projects"
+                    <Link to={location.pathname.includes('completed-projects') ? "/admin/completed-projects" : "/admin/active-projects"}
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-black">
                         <HiOutlineArrowLeft className="w-6 h-6" />
                     </Link>
@@ -493,7 +611,7 @@ const AdminProjectDetails = () => {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-3">
-                                    <button className="w-full py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded hover:bg-gray-100 transition-all shadow-lg">
+                                    <button onClick={handleDownloadReport} className="w-full py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded hover:bg-gray-100 transition-all shadow-lg">
                                         Download Revenue Report
                                     </button>
                                     {project?.status?.toLowerCase() !== 'completed' && (

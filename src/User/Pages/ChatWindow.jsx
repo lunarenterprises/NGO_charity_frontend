@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PiChatCircleDotsBold, PiPaperPlaneTiltBold } from 'react-icons/pi';
-import { IoArrowBack, IoAttach } from 'react-icons/io5';
+import { PiChatCircleDotsBold, PiPaperPlaneTiltBold, PiImageSquareBold, PiMicrophoneBold, PiPlayCircleBold, PiPauseCircleBold } from 'react-icons/pi';
+import { IoArrowBack, IoAttach, IoDocumentTextOutline, IoClose, IoDownloadOutline, IoTrashOutline, IoEllipsisVertical, IoCopyOutline } from 'react-icons/io5';
 import { MdOutlineSupportAgent, MdClose } from 'react-icons/md';
-import { PiImageSquareBold, PiMicrophoneBold, PiPlayCircleBold, PiPauseCircleBold } from 'react-icons/pi';
-import { IoDocumentTextOutline } from 'react-icons/io5';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Contexts/AuthContext';
-import { io } from 'socket.io-client';
+import io from 'socket.io-client';
 import { BASE_URL } from '../../Services/baseUrl';
-import { getChatHistoryUserApi, uploadChatFileUserApi } from '../../Services/userApi';
+import { getChatHistoryUserApi, uploadChatFileUserApi, deleteChatMessageUserApi } from '../../Services/userApi';
+import MediaModal from '../../Components/MediaModal';
+import Swal from 'sweetalert2';
 
 const ChatWindow = () => {
     const navigate = useNavigate();
@@ -24,7 +24,9 @@ const ChatWindow = () => {
     const [playingVoiceId, setPlayingVoiceId] = useState(null);
     const [playbackProgress, setPlaybackProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
+    const [previewMedia, setPreviewMedia] = useState({ isOpen: false, url: '', type: '', name: '' });
     
+    const [activeActionMenu, setActiveActionMenu] = useState(null); // stores messageId
     const bottomRef = useRef(null);
     const inputRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -104,6 +106,77 @@ const ChatWindow = () => {
         }
         return () => clearInterval(interval);
     }, [isRecording]);
+
+    // Close menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (!e.target.closest('.action-menu-container') && !e.target.closest('.action-modal')) {
+                setActiveActionMenu(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const formatChatDate = (date) => {
+        const d = new Date(date);
+        const now = new Date();
+        const diff = now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0);
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        if (diff === 0) return "Today";
+        if (diff === oneDay) return "Yesterday";
+        if (diff < 7 * oneDay) {
+            return d.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+    const handleCopyMessage = (content) => {
+        if (!content) return;
+        navigator.clipboard.writeText(content);
+        setActiveActionMenu(null);
+        Swal.fire({
+            title: 'Copied!',
+            text: 'Message copied to clipboard.',
+            icon: 'success',
+            timer: 1000,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        try {
+            const result = await Swal.fire({
+                title: 'Delete Message?',
+                text: "This will remove the message content for everyone.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#000',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            });
+
+            if (result.isConfirmed) {
+                const response = await deleteChatMessageUserApi(messageId);
+
+                if (response?.data?.success) {
+                    // Optimized state update: Mark as deleted locally
+                    setMessages(prev => prev.map(m => 
+                        (m._id === messageId || m.id === messageId) 
+                            ? { ...m, isDeleted: true, content: "This message was deleted", messageType: 'text', fileUrl: null } 
+                            : m
+                    ));
+                    
+                }
+            }
+        } catch (err) {
+            console.error("Delete failed:", err);
+            Swal.fire('Error', 'Failed to delete message. Please try again.', 'error');
+        }
+    };
 
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60);
@@ -300,11 +373,14 @@ const ChatWindow = () => {
                         ) : (
                             <PiImageSquareBold className="w-8 h-8 text-gray-400" />
                         )}
-                        <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                            <span className="text-white text-xs font-semibold px-3 py-1.5 bg-black/50 rounded-full backdrop-blur-sm cursor-pointer hover:bg-black/70">
+                        <div 
+                            onClick={() => setPreviewMedia({ isOpen: true, url: msg.fileUrl, type: 'image', name: msg.content })}
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg cursor-pointer"
+                        >
+                            <span className="text-white text-xs font-semibold px-3 py-1.5 bg-black/50 rounded-full backdrop-blur-sm hover:bg-black/70">
                                 View Full
                             </span>
-                        </a>
+                        </div>
                     </div>
                     {msg.content && <p className="text-[10px] text-gray-400 mt-1 truncate max-w-48">{msg.content}</p>}
                 </div>
@@ -313,15 +389,18 @@ const ChatWindow = () => {
 
         if (msg.messageType === 'pdf') {
             return (
-                <a href={msg.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 min-w-[200px] hover:border-black/10 transition-colors cursor-pointer group">
+                <div 
+                    onClick={() => setPreviewMedia({ isOpen: true, url: msg.fileUrl, type: 'pdf', name: msg.content || 'Document.pdf' })}
+                    className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 min-w-[200px] hover:border-black/10 transition-colors cursor-pointer group"
+                >
                     <div className="w-10 h-10 rounded bg-red-50 text-red-500 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
                         <IoDocumentTextOutline className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-gray-900 truncate">{msg.content || 'Document.pdf'}</p>
-                        <p className="text-[10px] text-gray-500 text-left cursor-pointer hover:underline mt-0.5">Click to view</p>
+                        <p className="text-[10px] text-gray-500 text-left hover:underline mt-0.5">Click to preview</p>
                     </div>
-                </a>
+                </div>
             );
         }
 
@@ -436,6 +515,12 @@ const ChatWindow = () => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
                 {/* ── Static Introduction Message ── */}
+                <div className="flex flex-col items-center my-4">
+                    <div className="bg-gray-200/50 backdrop-blur-sm text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-gray-300/30">
+                        Chat Started
+                    </div>
+                </div>
+
                 <div className="flex items-end gap-2 self-start max-w-[90%] lg:max-w-[50%]">
                     <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
                         <MdOutlineSupportAgent className="w-4 h-4 text-white" />
@@ -448,53 +533,104 @@ const ChatWindow = () => {
                     </div>
                 </div>
 
-                {messages.map((msg) =>
-                    msg.senderRole === 'admin' ? (
-                        /* ── Received (LEFT) ── */
-                        <div key={msg._id || msg.id} className="flex items-end gap-2 self-start max-w-[80%] lg:max-w-[40%]">
-                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
-                                <MdOutlineSupportAgent className="w-4 h-4 text-white" />
-                            </div>
-                            <div>
-                                <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
-                                    ['image', 'pdf'].includes(msg.messageType) 
-                                        ? 'bg-transparent shadow-none p-0' 
-                                        : 'bg-white text-gray-800'
-                                }`}>
-                                    {renderMessageContent(msg)}
-                                </div>
-                                <p className="text-[10px] text-gray-400 mt-1 ml-1">
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                            </div>
-                        </div>
-                    ) : (
-                        /* ── Sent (RIGHT) ── */
-                        <div key={msg._id || msg.id} className="flex items-end gap-2 self-end max-w-[80%] lg:max-w-[40%] flex-row-reverse">
-                            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0 overflow-hidden">
-                                {user?.profilePic ? (
-                                    <img src={user.profilePic} alt="You" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-xs font-bold text-gray-600">
-                                        {user?.fullname?.[0]?.toUpperCase() || 'U'}
+                {messages.map((msg, index) => {
+                    const msgDate = formatChatDate(msg.createdAt);
+                    const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
+                    const showSeparator = msgDate !== prevMsgDate;
+
+                    return (
+                        <React.Fragment key={msg._id || msg.id}>
+                            {showSeparator && (
+                                <div className="flex justify-center my-6 relative">
+                                    <div className="absolute inset-x-0 top-1/2 h-px bg-linear-to-r from-transparent via-gray-300 to-transparent" />
+                                    <span className="relative bg-[#f0f2f5] px-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                                        {msgDate}
                                     </span>
-                                )}
-                            </div>
-                            <div>
-                                <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed ${
-                                    ['image', 'pdf'].includes(msg.messageType)
-                                        ? 'bg-transparent shadow-none p-0'
-                                        : msg.messageType === 'voice' ? 'bg-black shadow-lg border-white/5' : 'bg-black text-white'
-                                }`}>
-                                    {renderMessageContent(msg)}
                                 </div>
-                                <p className="text-[10px] text-gray-400 mt-1 text-right mr-1">
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                            </div>
-                        </div>
-                    )
-                )}
+                            )}
+
+                            {msg.senderRole === 'admin' ? (
+                                /* ── Received (LEFT) ── */
+                                <div className="flex items-end gap-2 self-start max-w-[80%] lg:max-w-[40%] group">
+                                    <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0 shadow-sm border border-white/10">
+                                        <MdOutlineSupportAgent className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 text-sm leading-relaxed transition-all ${
+                                            msg.isDeleted 
+                                                ? 'bg-gray-50 text-gray-400 italic border border-gray-200' 
+                                                : ['image', 'pdf'].includes(msg.messageType) 
+                                                    ? 'bg-transparent p-0' 
+                                                    : 'bg-white text-gray-800 border border-gray-100 shadow-sm'
+                                        }`}>
+                                            {msg.isDeleted ? (
+                                                <div className="flex items-center gap-2 py-1">
+                                                    <IoTrashOutline className="opacity-50" />
+                                                    <span>This message was deleted</span>
+                                                </div>
+                                            ) : (
+                                                renderMessageContent(msg)
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mt-1 ml-1 font-medium italic opacity-70">
+                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* ── Sent (RIGHT) ── */
+                                <div className="flex items-end gap-2 self-end max-w-[80%] lg:max-w-[40%] flex-row-reverse group">
+                                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0 overflow-hidden shadow-sm border border-white">
+                                        {user?.profilePic ? (
+                                            <img src={user.profilePic} alt="You" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-xs font-bold text-gray-600">
+                                                {user?.fullname?.[0]?.toUpperCase() || 'U'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed transition-all relative ${
+                                            msg.isDeleted 
+                                                ? 'bg-gray-100 text-gray-400 italic border border-gray-200'
+                                                : ['image', 'pdf'].includes(msg.messageType)
+                                                    ? 'bg-transparent p-0'
+                                                    : msg.messageType === 'voice' ? 'bg-black shadow-lg border border-white/10' : 'bg-black text-white hover:bg-gray-900 shadow-sm'
+                                        }`}>
+                                            {msg.isDeleted ? (
+                                                <div className="flex items-center gap-2 py-1">
+                                                    <span>This message was deleted</span>
+                                                    <IoTrashOutline className="opacity-50" />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {renderMessageContent(msg)}
+                                                    
+                                                    {/* Actions Menu Trigger */}
+                                                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveActionMenu(msg);
+                                                            }}
+                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                            title="Message actions"
+                                                        >
+                                                            <IoEllipsisVertical className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        <p className="text-[10px] text-gray-400 mr-1 font-medium opacity-70">
+                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </React.Fragment>
+                    );
+                })}
 
                 {/* Typing indicator */}
                 {isTyping && (
@@ -613,6 +749,57 @@ const ChatWindow = () => {
                     }
                 `}</style>
             </div>
+            
+            <MediaModal 
+                isOpen={previewMedia.isOpen}
+                onClose={() => setPreviewMedia({ ...previewMedia, isOpen: false })}
+                mediaUrl={previewMedia.url}
+                mediaType={previewMedia.type}
+                mediaName={previewMedia.name}
+            />
+
+            {/* Actions Centered Modal */}
+            {activeActionMenu && (
+                <div 
+                    className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setActiveActionMenu(null)}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-xl w-72 overflow-hidden transform transition-all scale-100 action-modal"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-800">Message Options</h3>
+                            <button onClick={() => setActiveActionMenu(null)} className="text-gray-400 hover:text-gray-600 transition-colors bg-white rounded-full p-1 hover:bg-gray-200">
+                                <MdClose className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-2 flex flex-col gap-1">
+                            <button 
+                                onClick={() => handleCopyMessage(activeActionMenu.content)}
+                                className="w-full px-4 py-3 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl flex items-center gap-3 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center shrink-0">
+                                    <IoCopyOutline className="w-4 h-4" />
+                                </div>
+                                Copy text
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleDeleteMessage(activeActionMenu.id || activeActionMenu._id);
+                                    setActiveActionMenu(null);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl flex items-center gap-3 transition-colors"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                                    <IoTrashOutline className="w-4 h-4" />
+                                </div>
+                                Delete for Everyone
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

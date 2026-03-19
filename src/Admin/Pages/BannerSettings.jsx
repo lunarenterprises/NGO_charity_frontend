@@ -407,10 +407,9 @@ const BannerSettings = () => {
 
                             {/* Logo / Header */}
                             <div className="flex flex-col items-center space-y-4">
-                                {/* Placeholder for NGO Logo, using a text stand-in */}
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xl font-bold tracking-tight text-black">NGO</span>
-                                    <span className="text-xl tracking-tight text-gray-500">Admin</span>
+                                {/* Placeholder for Yashfi Logo */}
+                                <div className="w-12 h-12 bg-white flex items-center justify-center rounded-xl shadow-sm">
+                                    <span className="text-xl font-bold tracking-tight text-black">Yashfi</span>
                                 </div>
                                 <h3 className="text-base font-bold text-gray-900">Upload New Banner</h3>
                             </div>

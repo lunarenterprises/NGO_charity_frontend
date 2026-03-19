@@ -141,3 +141,8 @@ export const uploadChatFileAdminApi = async (reqBody, header) => {
 export const markChatAsReadApi = async (userId) => {
     return await commonApi("PATCH", `${BASE_URL}/api/chat/mark-read/${userId}`, {}, "");
 }
+
+// Delete Chat Message
+export const deleteChatMessageAdminApi = async (messageId) => {
+    return await commonApi("DELETE", `${BASE_URL}/api/chat/${messageId}`, "", "");
+}

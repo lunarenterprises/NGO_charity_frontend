@@ -127,3 +127,8 @@ export const getChatHistoryUserApi = async (adminId = 1) => {
 export const uploadChatFileUserApi = async (reqBody, header) => {
     return await commonApi("POST", `${BASE_URL}/api/chat/upload`, reqBody, header);
 }
+
+// Delete Chat Message
+export const deleteChatMessageUserApi = async (messageId) => {
+    return await commonApi("DELETE", `${BASE_URL}/api/chat/${messageId}`, "", "");
+}
