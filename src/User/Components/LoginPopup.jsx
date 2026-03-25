@@ -5,6 +5,8 @@ import { registerApi, sendOtpApi, loginApi } from '../../Services/userApi';
 import { showAlert } from '../../Utils/alert';
 import { useAuth } from '../../Contexts/AuthContext';
 
+import { COUNTRY_CODES } from '../../Constants/countryCodes';
+
 const LoginPopup = ({ onClose }) => {
     const { login } = useAuth();
     const portalRoot = document.body;
@@ -19,7 +21,9 @@ const LoginPopup = ({ onClose }) => {
         fullname: '',
         email: '',
         phone: '',
+        countryCode: '+91',
     });
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [otpArray, setOtpArray] = useState(['', '', '', '']);
 
     useEffect(() => {
@@ -92,7 +96,7 @@ const LoginPopup = ({ onClose }) => {
         if (!canResend) return;
         setLoading(true);
         try {
-            const payload = formData.email ? { email: formData.email } : { phone: formData.phone };
+            const payload = formData.email ? { email: formData.email } : { phone: formData.phone, countryCode: formData.countryCode };
             const result = await sendOtpApi(payload);
             if (result.status === 200) {
                 setTimeLeft(120);
@@ -120,7 +124,7 @@ const LoginPopup = ({ onClose }) => {
                 }
                 setLoading(true);
                 try {
-                    const payload = formData.email ? { email: formData.email } : { phone: formData.phone };
+                    const payload = formData.email ? { email: formData.email } : { phone: formData.phone, countryCode: formData.countryCode };
                     const result = await sendOtpApi(payload);
                     if (result.status === 200) {
                         setOtpSent(true);
@@ -143,7 +147,7 @@ const LoginPopup = ({ onClose }) => {
                 }
                 setLoading(true);
                 try {
-                    const payload = formData.email ? { email: formData.email } : { phone: formData.phone };
+                    const payload = formData.email ? { email: formData.email } : { phone: formData.phone, countryCode: formData.countryCode };
                     const result = await loginApi({ ...payload, otp: otpValue });
                     if (result.status === 200) {
                         const { accessToken, refreshToken, user } = result.data.data;
@@ -171,7 +175,8 @@ const LoginPopup = ({ onClose }) => {
                 const result = await registerApi({
                     fullname: formData.fullname,
                     email: formData.email,
-                    phone: formData.phone
+                    phone: formData.phone,
+                    countryCode: formData.countryCode
                 });
                 if (result.status === 200 || result.status === 201) {
                     await showAlert("Welcome!", 'Registration successful! Please login.', "success");
@@ -191,11 +196,13 @@ const LoginPopup = ({ onClose }) => {
         setIsLogin(!isLogin);
         setOtpSent(false);
         setError('');
+        setShowCountryDropdown(false);
         setOtpArray(['', '', '', '']);
         setFormData({
             fullname: '',
             email: '',
             phone: '',
+            countryCode: '+91',
         });
     };
 
@@ -297,15 +304,62 @@ const LoginPopup = ({ onClose }) => {
                                     <label className={`text-[10px] font-bold uppercase tracking-widest ml-1 ${isLogin && formData.email ? 'text-gray-300' : 'text-gray-400'}`}>
                                         Phone Number
                                     </label>
-                                    <input
-                                        type="tel"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleInputChange}
-                                        disabled={isLogin && formData.email.length > 0}
-                                        placeholder="+91 00000 00000"
-                                        className={`w-full px-4 py-3 border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black ${isLogin && formData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
-                                    />
+                                    <div className="flex gap-2">
+                                        <div className={`relative w-[110px] shrink-0 ${isLogin && formData.email.length > 0 ? "opacity-50 pointer-events-none" : ""}`}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                                                className="w-full px-3 py-3 h-[46px] bg-gray-200 border border-transparent rounded-2xl focus:bg-white focus:border-black outline-none transition-all duration-200 flex items-center justify-between gap-1 cursor-pointer"
+                                            >
+                                                <span className="flex items-center gap-2 text-sm font-semibold text-black">
+                                                    <img 
+                                                        src={COUNTRY_CODES.find(c => c.code === formData.countryCode)?.flag || COUNTRY_CODES[0].flag} 
+                                                        alt="flag" 
+                                                        className="w-5 h-auto rounded-[2px] shadow-sm"
+                                                    />
+                                                    {formData.countryCode}
+                                                </span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className={`w-3 h-3 text-gray-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                            
+                                            {showCountryDropdown && (
+                                                <>
+                                                    <div className="fixed inset-0 z-40" onClick={() => setShowCountryDropdown(false)} />
+                                                    <div className="absolute top-[50px] left-0 w-[220px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                        <div className="max-h-[200px] overflow-y-auto w-full py-2">
+                                                            {COUNTRY_CODES.map((country) => (
+                                                                <button
+                                                                    key={country.country}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setFormData({ ...formData, countryCode: country.code });
+                                                                        setShowCountryDropdown(false);
+                                                                        setError('');
+                                                                    }}
+                                                                    className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${formData.countryCode === country.code ? 'bg-gray-50' : ''}`}
+                                                                >
+                                                                    <img src={country.flag} alt={country.name} className="w-5 h-auto rounded-[2px] shadow-sm" />
+                                                                    <span className="text-sm font-semibold text-black flex-1 text-left">{country.name}</span>
+                                                                    <span className="text-xs font-bold text-gray-500">{country.code}</span>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleInputChange}
+                                            disabled={isLogin && formData.email.length > 0}
+                                            placeholder="75000 00021"
+                                            className={`w-full px-4 py-3 h-[46px] border border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all duration-200 text-sm font-semibold text-black ${isLogin && formData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -362,10 +416,10 @@ const LoginPopup = ({ onClose }) => {
 
                         <button
                             disabled={loading || !isFormValid}
-                            className={`w-full py-4 text-sm font-bold rounded-2xl transition-all duration-300 shadow-xl shadow-black/10 flex justify-center items-center gap-2
+                            className={`w-full py-4 text-sm font-bold rounded-2xl transition-all duration-300 border-2  flex justify-center items-center gap-2
                                 ${loading || !isFormValid
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed grayscale'
-                                    : 'bg-black text-white hover:bg-gray-900 shadow-black/20 transform hover:-translate-y-0.5'
+                                    : 'bg-black text-white hover:bg-gray-900 transform hover:-translate-y-0.5'
                                 }`}
                         >
                             {loading ? (

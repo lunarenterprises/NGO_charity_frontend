@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
-import { IoSend, IoAttach, IoMicOutline, IoMicOffOutline, IoCheckmarkDoneOutline, IoEllipsisVertical, IoClose, IoTrashOutline, IoSearchOutline, IoArrowBack, IoDocumentTextOutline, IoCopyOutline } from 'react-icons/io5';
+import { IoSend, IoAttach, IoMicOutline, IoMicOffOutline, IoCheckmarkDoneOutline, IoEllipsisVertical, IoClose, IoTrashOutline, IoSearchOutline, IoArrowBack, IoDocumentTextOutline, IoCopyOutline, IoCheckmark, IoCheckmarkDone, IoLink } from 'react-icons/io5';
 import { MdOutlineSupportAgent, MdDeleteOutline, MdClose } from 'react-icons/md';
 import { PiChatCircleDotsBold, PiPaperPlaneTiltBold, PiMicrophoneBold, PiSpeakerHighBold, PiPlayCircleBold, PiPauseCircleBold, PiImageSquareBold } from 'react-icons/pi';
 import { useNavigate } from 'react-router-dom';
@@ -105,6 +105,12 @@ const Messages = () => {
             // Mark as read on backend if it's the active chat
             if (msg.senderRole === 'user' && activeChat && (activeChat._id || activeChat.id) === msg.senderId) {
                 markChatAsReadApi(msg.senderId).catch(console.error);
+                // Real-time status update via socket
+                newSocket.emit('message_delivered', { messageId: msg.id || msg._id });
+                newSocket.emit('message_read', { messageId: msg.id || msg._id });
+            } else if (msg.senderRole === 'user') {
+                // Just delivered if not active
+                newSocket.emit('message_delivered', { messageId: msg.id || msg._id });
             }
 
             // Re-order conversations and update last message
@@ -145,6 +151,24 @@ const Messages = () => {
             bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
         });
 
+        // Handle status updates for sent messages
+        newSocket.on('message_delivered_status', ({ messageId }) => {
+            setMessages(prev => prev.map(m => 
+                (m.id === messageId || m._id === messageId) ? { ...m, isDelivered: true } : m
+            ));
+        });
+
+        newSocket.on('message_read_status', ({ messageId, senderId, all }) => {
+            setMessages(prev => prev.map(m => {
+                if (all) {
+                    if (m.senderRole === 'admin' && m.receiverId === senderId) return { ...m, isRead: true, isDelivered: true };
+                    return m;
+                }
+                if (m.id === messageId || m._id === messageId) return { ...m, isRead: true, isDelivered: true };
+                return m;
+            }));
+        });
+
         setSocket(newSocket);
 
         return () => {
@@ -155,7 +179,7 @@ const Messages = () => {
     // Fetch messages when activeChat changes
     useEffect(() => {
         const fetchHistory = async () => {
-            if (activeChat && accessToken) {
+            if (activeChat && accessToken && socket) {
                 try {
                     const reqHeader = { "Authorization": `Bearer ${accessToken}` };
                     const chatId = activeChat._id || activeChat.id;
@@ -163,6 +187,9 @@ const Messages = () => {
                     if (res.status === 200) {
                         const history = res.data.data || [];
                         setMessages(history);
+                        
+                        // Mark history as read
+                        socket.emit('message_read', { senderId: chatId });
                         
                         // Sync sidebar with last message from history if needed
                         if (history.length > 0) {
@@ -390,6 +417,31 @@ const Messages = () => {
         if (file) {
             setSelectedFile(file);
             setInput('');
+        }
+    };
+
+    const handleLinkPrompt = async () => {
+        if (!activeChat) return;
+        const { value: url } = await Swal.fire({
+            title: 'Share a link',
+            input: 'url',
+            inputLabel: 'Enter the URL',
+            inputPlaceholder: 'https://example.com',
+            showCancelButton: true,
+            confirmButtonColor: '#000',
+            inputValidator: (value) => {
+                if (!value) return 'You need to enter a URL!';
+                try { new URL(value); } catch (_) { return 'Invalid URL format!'; }
+            }
+        });
+
+        if (url && socket) {
+            socket.emit('send_message', {
+                receiverId: activeChat._id || activeChat.id,
+                receiverRole: 'user',
+                content: url,
+                messageType: 'link'
+            });
         }
     };
 
@@ -664,6 +716,23 @@ const Messages = () => {
             );
         }
 
+        if (msg.messageType === 'link') {
+            const isAdmin = msg.senderRole !== 'user';
+            return (
+                <a 
+                    href={msg.content} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-2 px-1 py-0.5 hover:opacity-80 transition-opacity no-underline group`}
+                >
+                    <IoLink className={`w-4 h-4 shrink-0 ${isAdmin ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`text-sm underline break-all font-medium ${isAdmin ? 'text-blue-300' : 'text-blue-600'}`}>
+                        {msg.content}
+                    </span>
+                </a>
+            );
+        }
+
         return msg.content || msg.text;
     };
 
@@ -916,7 +985,17 @@ const Messages = () => {
                                                     <p className="text-[10px] text-gray-400 font-medium opacity-70">
                                                         {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </p>
-                                                    {msg.isRead && <IoCheckmarkDoneOutline className="w-3.5 h-3.5 text-blue-500" />}
+                                                    {!msg.isDeleted && (
+                                                        <span className="flex items-center">
+                                                            {msg.isRead ? (
+                                                                <IoCheckmarkDone className="w-3.5 h-3.5 text-blue-500" />
+                                                            ) : msg.isDelivered ? (
+                                                                <IoCheckmarkDone className="w-3.5 h-3.5 text-gray-400" />
+                                                            ) : (
+                                                                <IoCheckmark className="w-3.5 h-3.5 text-gray-400" />
+                                                            )}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -961,9 +1040,18 @@ const Messages = () => {
                                 accept="image/*,.pdf"
                             />
                             <button
+                                onClick={handleLinkPrompt}
+                                disabled={isRecording || isSending}
+                                className="w-11 h-11 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
+                                title="Share link"
+                            >
+                                <IoLink className="w-5 h-5" />
+                            </button>
+                            <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isRecording}
                                 className="w-11 h-11 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
+                                title="Attach file"
                             >
                                 <IoAttach className="w-6 h-6" />
                             </button>

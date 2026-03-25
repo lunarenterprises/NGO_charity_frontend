@@ -88,6 +88,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateUser = (userData) => {
+        updateAuthData({ user: userData });
+    };
+
     return (
         <AuthContext.Provider value={{
             // User-side exports
@@ -104,6 +108,7 @@ export const AuthProvider = ({ children }) => {
             login,
             logout,
             updateAuthData,
+            updateUser,
             loading
         }}>
             {!loading && children}

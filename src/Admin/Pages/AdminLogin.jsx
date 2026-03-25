@@ -255,17 +255,21 @@ const AdminLogin = () => {
                                             Phone Number
                                         </label>
                                         <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none flex-row gap-2">
                                                 <AiOutlineUser className={`h-5 w-5 transition-colors ${adminData.email ? 'text-gray-300' : 'text-gray-400 group-focus-within:text-black'}`} />
+                                                <span className={`text-sm font-semibold ${adminData.email ? 'text-gray-400' : 'text-black'}`}>+91</span>
                                             </div>
                                             <input
                                                 type="tel"
                                                 name="phone"
                                                 value={adminData.phone}
-                                                onChange={handleChange}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    if (val.length <= 10) handleChange({ target: { name: 'phone', value: val } });
+                                                }}
                                                 disabled={adminData.email.length > 0}
-                                                className={`block w-full pl-12 pr-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
-                                                placeholder="+91 00000 00000"
+                                                className={`block w-full pl-20 pr-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
+                                                placeholder="00000 00000"
                                             />
                                         </div>
                                     </div>

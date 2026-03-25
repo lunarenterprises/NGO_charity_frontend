@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PiChatCircleDotsBold, PiPaperPlaneTiltBold, PiImageSquareBold, PiMicrophoneBold, PiPlayCircleBold, PiPauseCircleBold } from 'react-icons/pi';
-import { IoArrowBack, IoAttach, IoDocumentTextOutline, IoClose, IoDownloadOutline, IoTrashOutline, IoEllipsisVertical, IoCopyOutline } from 'react-icons/io5';
+import { IoArrowBack, IoAttach, IoDocumentTextOutline, IoClose, IoDownloadOutline, IoTrashOutline, IoEllipsisVertical, IoCopyOutline, IoCheckmark, IoCheckmarkDone, IoLink } from 'react-icons/io5';
 import { MdOutlineSupportAgent, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../Contexts/AuthContext';
@@ -56,6 +56,29 @@ const ChatWindow = () => {
             newSocket.on('receive_message', (msg) => {
                 setMessages(prev => [...prev, msg]);
                 setIsTyping(false); // Stop typing indicator if new msg arrives
+
+                // Emit delivered & read if it's from admin
+                if (msg.senderRole === 'admin') {
+                    newSocket.emit('message_delivered', { messageId: msg.id || msg._id });
+                    newSocket.emit('message_read', { messageId: msg.id || msg._id });
+                }
+            });
+
+            newSocket.on('message_delivered_status', ({ messageId }) => {
+                setMessages(prev => prev.map(m => 
+                    (m.id === messageId || m._id === messageId) ? { ...m, isDelivered: true } : m
+                ));
+            });
+
+            newSocket.on('message_read_status', ({ messageId, senderId, all }) => {
+                setMessages(prev => prev.map(m => {
+                    if (all) {
+                        if (m.senderRole === 'user') return { ...m, isRead: true, isDelivered: true };
+                        return m;
+                    }
+                    if (m.id === messageId || m._id === messageId) return { ...m, isRead: true, isDelivered: true };
+                    return m;
+                }));
             });
 
             newSocket.on('user_typing', () => {
@@ -81,7 +104,10 @@ const ChatWindow = () => {
         };
 
         const currentSocket = connectSocket();
-        loadHistory();
+        loadHistory().then(() => {
+            // Mark all admin messages as read when history loads
+            currentSocket.emit('message_read', { senderId: 1 }); // Admin ID 1
+        });
 
         return () => {
             currentSocket.disconnect();
@@ -196,6 +222,30 @@ const ChatWindow = () => {
         // Emit typing
         if (socket) {
             socket.emit('typing', { receiverId: 1, receiverRole: 'admin' }); // Fixed ID for admin for now
+        }
+    };
+
+    const handleLinkPrompt = async () => {
+        const { value: url } = await Swal.fire({
+            title: 'Share a link',
+            input: 'url',
+            inputLabel: 'Enter the URL',
+            inputPlaceholder: 'https://example.com',
+            showCancelButton: true,
+            confirmButtonColor: '#000',
+            inputValidator: (value) => {
+                if (!value) return 'You need to enter a URL!';
+                try { new URL(value); } catch (_) { return 'Invalid URL format!'; }
+            }
+        });
+
+        if (url && socket) {
+            socket.emit('send_message', {
+                receiverId: 1,
+                receiverRole: 'admin',
+                content: url,
+                messageType: 'link'
+            });
         }
     };
 
@@ -490,6 +540,23 @@ const ChatWindow = () => {
             );
         }
 
+        if (msg.messageType === 'link') {
+            const isAdmin = msg.senderRole === 'admin';
+            return (
+                <a 
+                    href={msg.content} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-2 px-1 py-0.5 hover:opacity-80 transition-opacity no-underline group`}
+                >
+                    <IoLink className={`w-4 h-4 shrink-0 ${isAdmin ? 'text-blue-500' : 'text-blue-400'}`} />
+                    <span className={`text-sm underline break-all font-medium ${isAdmin ? 'text-blue-600' : 'text-blue-300'}`}>
+                        {msg.content}
+                    </span>
+                </a>
+            );
+        }
+
         return msg.content;
     };
 
@@ -622,8 +689,19 @@ const ChatWindow = () => {
                                                 </>
                                             )}
                                         </div>
-                                        <p className="text-[10px] text-gray-400 mr-1 font-medium opacity-70">
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        <p className="text-[10px] text-gray-400 mr-1 font-medium opacity-70 flex items-center gap-1">
+                                            {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {!msg.isDeleted && (
+                                                <span className="flex items-center">
+                                                    {msg.isRead ? (
+                                                        <IoCheckmarkDone className="w-3.5 h-3.5 text-blue-500" />
+                                                    ) : msg.isDelivered ? (
+                                                        <IoCheckmarkDone className="w-3.5 h-3.5 text-gray-400" />
+                                                    ) : (
+                                                        <IoCheckmark className="w-3.5 h-3.5 text-gray-400" />
+                                                    )}
+                                                </span>
+                                            )}
                                         </p>
                                     </div>
                                 </div>
@@ -682,9 +760,18 @@ const ChatWindow = () => {
                         accept="image/*,.pdf"
                     />
                     <button
+                        onClick={handleLinkPrompt}
+                        disabled={isRecording || isSending}
+                        className="w-11 h-11 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
+                        title="Share link"
+                    >
+                        <IoLink className="w-5 h-5" />
+                    </button>
+                    <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isRecording || isSending}
                         className="w-11 h-11 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
+                        title="Attach file"
                     >
                         <IoAttach className="w-6 h-6" />
                     </button>

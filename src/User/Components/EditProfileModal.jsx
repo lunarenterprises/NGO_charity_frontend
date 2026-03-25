@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { IoClose } from 'react-icons/io5';
-import { FaUser, FaPhone, FaEnvelope } from 'react-icons/fa';
+import { FaUser, FaPhone, FaEnvelope, FaChevronDown } from 'react-icons/fa';
 import { updateUserProfileApi } from '../../Services/userApi';
 import { showAlert } from '../../Utils/alert';
+import { COUNTRY_CODES } from '../../Constants/countryCodes';
 
-const EditProfileModal = ({ isOpen, onClose, userData, onUpdateSuccess }) => {
+const EditProfileModal = ({ isOpen, onClose, userData, onUpdateSuccess, onNoChanges }) => {
     const portalRoot = document.body;
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [formData, setFormData] = useState({
         fullname: '',
         phone: '',
-        email: '' // Read-only usually
+        email: '',
+        countryCode: '+91'
     });
 
     useEffect(() => {
@@ -20,7 +23,8 @@ const EditProfileModal = ({ isOpen, onClose, userData, onUpdateSuccess }) => {
             setFormData({
                 fullname: userData.fullname || '',
                 phone: userData.phone || '',
-                email: userData.email || ''
+                email: userData.email || '',
+                countryCode: userData.countryCode || '+91'
             });
         }
     }, [userData, isOpen]);
@@ -37,21 +41,49 @@ const EditProfileModal = ({ isOpen, onClose, userData, onUpdateSuccess }) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        
+        // Change Detection
+        const initialFullname = userData.fullname || '';
+        const initialPhone = userData.phone || '';
+        const initialEmail = userData.email || '';
+        const initialCountryCode = userData.countryCode || '+91';
+
+        const hasChanges = 
+            formData.fullname.trim() !== initialFullname ||
+            formData.phone.trim() !== initialPhone ||
+            formData.email.trim() !== initialEmail ||
+            formData.countryCode !== initialCountryCode;
+
+        if (!hasChanges) {
+            onClose();
+            await showAlert("No Changes Found", "No changes detected. Please update for saving new changes.", "info");
+            setLoading(false);
+            onNoChanges?.();
+            return;
+        }
 
         try {
             // We only send fullname and phone as per standard profile updates
             const updatePayload = {
                 fullname: formData.fullname,
                 phone: formData.phone,
-                email: formData.email
+                email: formData.email,
+                countryCode: formData.countryCode
             };
 
             const response = await updateUserProfileApi(updatePayload);
 
             if (response?.data?.success) {
+                setError(''); // Clear any previous errors
                 showAlert("Success!", "Profile updated successfully", "success");
-                onUpdateSuccess(response.data.data);
-                onClose();
+                
+                // Use a separate try-catch for success callbacks to prevent them from triggering the main error UI
+                try {
+                    onUpdateSuccess(response.data.data);
+                    onClose();
+                } catch (callbackErr) {
+                    console.error("EditProfileModal: Success Callback Error", callbackErr);
+                }
             } else {
                 setError(response?.response?.data?.message || "Failed to update profile");
             }
@@ -109,17 +141,64 @@ const EditProfileModal = ({ isOpen, onClose, userData, onUpdateSuccess }) => {
                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">
                                 Phone Number
                             </label>
-                            <div className="relative">
-                                <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                <input
-                                    type="tel"
-                                    name="phone"
-                                    value={formData.phone}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter your phone number"
-                                    className="w-full pl-11 pr-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all font-semibold text-sm"
-                                    required
-                                />
+                            <div className="flex gap-2">
+                                <div className="relative w-[110px] shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                                        className="w-full px-3 py-4 h-[54px] bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-black outline-none transition-all flex items-center justify-between gap-1 cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <img 
+                                                src={COUNTRY_CODES.find(c => c.code === formData.countryCode)?.flag || COUNTRY_CODES[0].flag} 
+                                                alt="flag" 
+                                                className="w-5 h-auto rounded-[2px] shadow-sm"
+                                            />
+                                            <span className="text-sm font-semibold text-black">
+                                                {formData.countryCode}
+                                            </span>
+                                        </div>
+                                        <FaChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    
+                                    {showCountryDropdown && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => setShowCountryDropdown(false)} />
+                                            <div className="absolute top-[60px] left-0 w-[220px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                <div className="max-h-[200px] overflow-y-auto w-full py-2">
+                                                    {COUNTRY_CODES.map((country) => (
+                                                        <button
+                                                            key={country.country}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, countryCode: country.code });
+                                                                setShowCountryDropdown(false);
+                                                                setError('');
+                                                            }}
+                                                            className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${formData.countryCode === country.code ? 'bg-gray-50' : ''}`}
+                                                        >
+                                                            <img src={country.flag} alt={country.name} className="w-5 h-auto rounded-[2px] shadow-sm" />
+                                                            <span className="text-sm font-semibold text-black flex-1 text-left">{country.name}</span>
+                                                            <span className="text-xs font-bold text-gray-500">{country.code}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="relative flex-1">
+                                    <FaPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <input
+                                        type="tel"
+                                        name="phone"
+                                        value={formData.phone}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter phone number"
+                                        className="w-full pl-11 pr-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none transition-all font-semibold text-sm"
+                                        required
+                                    />
+                                </div>
                             </div>
                         </div>
 

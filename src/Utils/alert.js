@@ -28,12 +28,17 @@ const themeConfig = {
 };
 
 export const showAlert = (title, text, icon = 'success') => {
+    let iconColor = '#000000'; // Default black
+    if (icon === 'error') iconColor = '#ef4444'; // Red
+    if (icon === 'warning') iconColor = '#f59e0b'; // Amber
+    if (icon === 'info') iconColor = '#000000'; // Black
+
     return Swal.fire({
         ...themeConfig,
         title,
         text,
         icon,
-        iconColor: icon === 'success' ? '#000000' : '#ef4444', // Red for error, black for success
+        iconColor,
     });
 };
 

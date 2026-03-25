@@ -420,6 +420,7 @@ const Profile = () => {
             <EditProfileModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
+                onNoChanges={() => setIsEditModalOpen(true)}
                 userData={profileData}
                 onUpdateSuccess={handleUpdateSuccess}
             />
