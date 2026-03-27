@@ -4,3 +4,8 @@
 
     font-family: "Poppins", sans-serif;
 }
+
+/* Prevent layout shift when SweetAlert is opened by preventing scrollbar from removing */
+body.swal2-shown {
+    overflow-y: auto !important;
+}

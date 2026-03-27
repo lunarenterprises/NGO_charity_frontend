@@ -24,7 +24,8 @@ const themeConfig = {
         title: 'text-2xl font-black italic uppercase tracking-tighter',
         htmlContainer: 'text-sm font-medium text-gray-600'
     },
-    buttonsStyling: false
+    buttonsStyling: false,
+    scrollbarPadding: false
 };
 
 export const showAlert = (title, text, icon = 'success') => {

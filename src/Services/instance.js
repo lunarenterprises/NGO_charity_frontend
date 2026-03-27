@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { BASE_URL } from './baseUrl';
+import { showAlert } from '../Utils/alert';
 
 const instance = axios.create({
     baseURL: BASE_URL,
@@ -8,6 +9,7 @@ const instance = axios.create({
 });
 
 let isRefreshing = false;
+let isLoggingOut = false; // Add flag to prevent multiple alerts
 let refreshSubscribers = [];
 
 const subscribeTokenRefresh = (cb) => {
@@ -144,18 +146,34 @@ async function handleTokenRefresh(originalRequest) {
 }
 
 function forceLogout() {
+    if (isLoggingOut) return;
+    isLoggingOut = true;
+
     const isAdmin = window.location.pathname.startsWith('/admin');
-    localStorage.removeItem(isAdmin ? 'admin' : 'user');
     
-    // Refresh token is handled/cleared by backend; frontend does not remove it manually
+    // 1. Clear both local and session storage
+    localStorage.removeItem(isAdmin ? 'admin' : 'user');
+    sessionStorage.clear();
+    
+    // 2. Dispatch event for anything listening in React
     window.dispatchEvent(new Event('auth_logout'));
 
-    // Adaptive redirect logic based on app side
-    if (isAdmin && window.location.pathname !== '/admin/login') {
-        window.location.href = '/admin/login';
-    } else if (!isAdmin && window.location.pathname !== '/') {
-        window.location.href = '/';
-    }
+    // 3. Show alert and redirect on close
+    showAlert('Session Expired', 'Your session has expired. Please login again to continue.', 'warning')
+        .then(() => {
+            // Adaptive redirect logic based on app side
+            if (isAdmin && window.location.pathname !== '/admin/login') {
+                window.location.href = '/admin/login';
+            } else if (!isAdmin && window.location.pathname !== '/') {
+                window.location.href = '/';
+            } else {
+                // If already on login/home, just reload to clear React state
+                window.location.reload();
+            }
+        })
+        .finally(() => {
+            isLoggingOut = false;
+        });
 }
 
 export default instance;

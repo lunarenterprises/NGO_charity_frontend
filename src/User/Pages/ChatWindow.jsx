@@ -8,11 +8,12 @@ import io from 'socket.io-client';
 import { BASE_URL } from '../../Services/baseUrl';
 import { getChatHistoryUserApi, uploadChatFileUserApi, deleteChatMessageUserApi } from '../../Services/userApi';
 import MediaModal from '../../Components/MediaModal';
+import { showAlert } from '../../Utils/alert';
 import Swal from 'sweetalert2';
 
 const ChatWindow = () => {
     const navigate = useNavigate();
-    const { user, accessToken } = useAuth();
+    const { user, accessToken, logout } = useAuth();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -35,12 +36,39 @@ const ChatWindow = () => {
     const recordingTimeRef = useRef(0);
     const typingTimeoutRef = useRef(null);
 
+    const isTokenExpired = (token) => {
+        if (!token) return true;
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            return decoded.exp * 1000 < Date.now();
+        } catch (e) {
+            return true;
+        }
+    };
+
     const formatPlaybackTime = (time) => {
         if (!time) return "0:00";
         const mins = Math.floor(time / 60);
         const secs = Math.floor(time % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
+
+    // Auth check on mount
+    useEffect(() => {
+        const checkAuth = async () => {
+             if (!accessToken || isTokenExpired(accessToken)) {
+                 await showAlert("Session Expired", "Please login again to access the chat.", "warning");
+                 logout('user');
+                 navigate("/", { state: { openLogin: true } });
+             }
+        };
+        checkAuth();
+    }, [accessToken, navigate]);
 
     // Socket Initialization and History
     useEffect(() => {
@@ -189,13 +217,8 @@ const ChatWindow = () => {
                 const response = await deleteChatMessageUserApi(messageId);
 
                 if (response?.data?.success) {
-                    // Optimized state update: Mark as deleted locally
-                    setMessages(prev => prev.map(m => 
-                        (m._id === messageId || m.id === messageId) 
-                            ? { ...m, isDeleted: true, content: "This message was deleted", messageType: 'text', fileUrl: null } 
-                            : m
-                    ));
-                    
+                    // Optimized state update: Remove the message from local state
+                    setMessages(prev => prev.filter(m => m._id !== messageId && m._id !== messageId));
                 }
             }
         } catch (err) {
@@ -600,7 +623,7 @@ const ChatWindow = () => {
                     </div>
                 </div>
 
-                {messages.map((msg, index) => {
+                {messages.filter(msg => !msg.isDeleted).map((msg, index) => {
                     const msgDate = formatChatDate(msg.createdAt);
                     const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
                     const showSeparator = msgDate !== prevMsgDate;
@@ -624,20 +647,11 @@ const ChatWindow = () => {
                                     </div>
                                     <div>
                                         <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 text-sm leading-relaxed transition-all ${
-                                            msg.isDeleted 
-                                                ? 'bg-gray-50 text-gray-400 italic border border-gray-200' 
-                                                : ['image', 'pdf'].includes(msg.messageType) 
+                                            ['image', 'pdf'].includes(msg.messageType) 
                                                     ? 'bg-transparent p-0' 
                                                     : 'bg-white text-gray-800 border border-gray-100 shadow-sm'
                                         }`}>
-                                            {msg.isDeleted ? (
-                                                <div className="flex items-center gap-2 py-1">
-                                                    <IoTrashOutline className="opacity-50" />
-                                                    <span>This message was deleted</span>
-                                                </div>
-                                            ) : (
-                                                renderMessageContent(msg)
-                                            )}
+                                            {renderMessageContent(msg)}
                                         </div>
                                         <p className="text-[10px] text-gray-400 mt-1 ml-1 font-medium italic opacity-70">
                                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -658,36 +672,25 @@ const ChatWindow = () => {
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
                                         <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed transition-all relative ${
-                                            msg.isDeleted 
-                                                ? 'bg-gray-100 text-gray-400 italic border border-gray-200'
-                                                : ['image', 'pdf'].includes(msg.messageType)
+                                            ['image', 'pdf'].includes(msg.messageType)
                                                     ? 'bg-transparent p-0'
                                                     : msg.messageType === 'voice' ? 'bg-black shadow-lg border border-white/10' : 'bg-black text-white hover:bg-gray-900 shadow-sm'
                                         }`}>
-                                            {msg.isDeleted ? (
-                                                <div className="flex items-center gap-2 py-1">
-                                                    <span>This message was deleted</span>
-                                                    <IoTrashOutline className="opacity-50" />
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {renderMessageContent(msg)}
-                                                    
-                                                    {/* Actions Menu Trigger */}
-                                                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
-                                                        <button 
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setActiveActionMenu(msg);
-                                                            }}
-                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
-                                                            title="Message actions"
-                                                        >
-                                                            <IoEllipsisVertical className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            )}
+                                            {renderMessageContent(msg)}
+                                            
+                                            {/* Actions Menu Trigger */}
+                                            <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveActionMenu(msg);
+                                                    }}
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Message actions"
+                                                >
+                                                    <IoEllipsisVertical className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                         <p className="text-[10px] text-gray-400 mr-1 font-medium opacity-70 flex items-center gap-1">
                                             {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

@@ -29,6 +29,15 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
         };
     }, []);
 
+    // Handle automatic login modal trigger from redirection
+    useEffect(() => {
+        if (location.state?.openLogin) {
+            setIsLoginPopupOpen(true);
+            // Clear state to prevent re-opening on manual refresh
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [location.state, navigate]);
+
     const handleLogout = async () => {
         const result = await showConfirm('Sign Out?', 'Are you sure you want to sign out of your account?');
         if (result.isConfirmed) {

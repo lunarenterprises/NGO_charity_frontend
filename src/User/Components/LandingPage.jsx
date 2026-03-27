@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import StatsSection from './StatsSection';
 import FeaturedCampaigns from './FeaturedCampaigns';
 import CompletedProjects from './CompletedProjects';
@@ -61,6 +61,9 @@ function LandingPage({ onQuickDonationOpen }) {
 
     return () => clearInterval(interval);
   }, [banners.length]);
+  
+  const handleFeaturedLoad = useCallback(() => setFeaturedLoaded(true), []);
+  const handleCompletedLoad = useCallback(() => setCompletedLoaded(true), []);
 
   return (
     <div className="min-h-screen font-sans">
@@ -154,8 +157,8 @@ function LandingPage({ onQuickDonationOpen }) {
 
       <StatsSection />
 
-      <FeaturedCampaigns onLoad={() => setFeaturedLoaded(true)} />
-      <CompletedProjects onLoad={() => setCompletedLoaded(true)} />
+      <FeaturedCampaigns onLoad={handleFeaturedLoad} />
+      <CompletedProjects onLoad={handleCompletedLoad} />
     </div>
 
   );

@@ -286,13 +286,8 @@ const Messages = () => {
                 const response = await deleteChatMessageAdminApi(messageId);
 
                 if (response?.data?.success) {
-                    // Optimized state update: Mark as deleted locally
-                    setMessages(prev => prev.map(m => 
-                        (m.id === messageId || m._id === messageId) 
-                            ? { ...m, isDeleted: true, content: "This message was deleted", messageType: 'text', fileUrl: null } 
-                            : m
-                    ));
-                    
+                    // Optimized state update: Remove the message from local state
+                    setMessages(prev => prev.filter(m => m.id !== messageId && m._id !== messageId));
                 }
             }
         } catch (err) {
@@ -892,7 +887,7 @@ const Messages = () => {
                                 No messages in this conversation yet. Send a message to start!
                             </div>
                         )}
-                        {messages.map((msg, index) => {
+                        {messages.filter(msg => !msg.isDeleted).map((msg, index) => {
                             const msgDate = formatChatDate(msg.createdAt);
                             const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
                             const showSeparator = msgDate !== prevMsgDate;
@@ -920,20 +915,11 @@ const Messages = () => {
                                             </div>
                                             <div>
                                                 <div className={`rounded-2xl rounded-bl-none px-4 py-2.5 text-sm leading-relaxed transition-all ${
-                                                    msg.isDeleted 
-                                                        ? 'bg-gray-100 text-gray-400 italic border border-gray-200' 
-                                                        : ['image', 'pdf'].includes(msg.messageType) 
-                                                            ? 'bg-transparent shadow-none p-0' 
-                                                            : msg.messageType === 'voice' ? 'bg-white shadow-md border-black/5' : 'bg-white text-gray-800 border border-gray-100 shadow-sm'
+                                                    ['image', 'pdf'].includes(msg.messageType) 
+                                                                ? 'bg-transparent shadow-none p-0' 
+                                                                : msg.messageType === 'voice' ? 'bg-white shadow-md border-black/5' : 'bg-white text-gray-800 border border-gray-100 shadow-sm'
                                                 }`}>
-                                                    {msg.isDeleted ? (
-                                                        <div className="flex items-center gap-2 py-1">
-                                                            <IoTrashOutline className="opacity-50" />
-                                                            <span>This message was deleted</span>
-                                                        </div>
-                                                    ) : (
-                                                        renderMessageContent(msg)
-                                                    )}
+                                                    {renderMessageContent(msg)}
                                                 </div>
                                                 <p className="text-[10px] text-gray-400 mt-1 ml-1 font-medium opacity-70">
                                                     {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -948,38 +934,27 @@ const Messages = () => {
                                             </div>
                                             <div className="flex flex-col items-end">
                                                 <div className={`rounded-2xl rounded-br-none px-4 py-2.5 text-sm leading-relaxed transition-all relative ${
-                                                    msg.isDeleted 
-                                                        ? 'bg-gray-100 text-gray-400 italic border border-gray-200'
-                                                        : ['image', 'pdf', 'voice'].includes(msg.messageType)
+                                                    ['image', 'pdf', 'voice'].includes(msg.messageType)
                                                             ? msg.messageType === 'voice' 
                                                                 ? 'bg-blue-600 text-white shadow-md border-0' 
                                                                 : 'bg-transparent shadow-none p-0'
                                                             : 'bg-black text-white hover:bg-gray-900 shadow-lg'
                                                 }`}>
-                                                    {msg.isDeleted ? (
-                                                        <div className="flex items-center gap-2 py-1">
-                                                            <span>This message was deleted</span>
-                                                            <IoTrashOutline className="opacity-50" />
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            {renderMessageContent(msg)}
-                                                            
-                                                            {/* Actions Menu Trigger */}
-                                                            <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
-                                                                <button 
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        setActiveActionMenu(msg);
-                                                                    }}
-                                                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
-                                                                    title="Message actions"
-                                                                >
-                                                                    <IoEllipsisVertical className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </>
-                                                    )}
+                                                    {renderMessageContent(msg)}
+                                                    
+                                                    {/* Actions Menu Trigger */}
+                                                    <div className="absolute -left-8 top-1/2 -translate-y-1/2 action-menu-container">
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveActionMenu(msg);
+                                                            }}
+                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                            title="Message actions"
+                                                        >
+                                                            <IoEllipsisVertical className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-1 mr-1">
                                                     <p className="text-[10px] text-gray-400 font-medium opacity-70">
