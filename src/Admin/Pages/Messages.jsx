@@ -27,6 +27,7 @@ const Messages = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [socket, setSocket] = useState(null);
     const [isSending, setIsSending] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
     const [previewMedia, setPreviewMedia] = useState({ isOpen: false, url: '', type: '', name: '' });
     const [activeActionMenu, setActiveActionMenu] = useState(null); // stores messageId
     const bottomRef = useRef(null);
@@ -35,7 +36,37 @@ const Messages = () => {
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimeRef = useRef(0);
+    const typingTimeoutRef = useRef(null);
     const navigate = useNavigate();
+
+    const isTokenExpired = (token) => {
+        if (!token) return true;
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            const decoded = JSON.parse(jsonPayload);
+            return decoded.exp * 1000 < Date.now();
+        } catch (e) {
+            return true;
+        }
+    };
+
+    const { logout } = useContext(AuthContext);
+
+    // Auth check on mount
+    useEffect(() => {
+        const checkAuth = async () => {
+             if (!accessToken || isTokenExpired(accessToken)) {
+                 await Swal.fire("Session Expired", "Please login again to access the admin portal.", "warning");
+                 logout();
+                 navigate("/admin/login");
+             }
+        };
+        checkAuth();
+    }, [accessToken, navigate, logout]);
 
     const formatPlaybackTime = (time) => {
         if (!time) return "0:00";
@@ -171,6 +202,12 @@ const Messages = () => {
             }));
         });
 
+        newSocket.on('user_typing', () => {
+            setIsTyping(true);
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+        });
+
         setSocket(newSocket);
 
         return () => {
@@ -241,7 +278,7 @@ const Messages = () => {
     // Scroll to bottom when new messages are added
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isTyping]);
 
     const formatChatDate = (date) => {
         const d = new Date(date);
@@ -403,6 +440,11 @@ const Messages = () => {
             setIsSending(false);
             setInput('');
             
+            // Emit typing (can reset or handle as needed)
+            if (activeChat && socket) {
+                socket.emit('typing', { receiverId: activeChat._id || activeChat.id, receiverRole: 'user' });
+            }
+
             if (!isRecording && !selectedFile) {
                 setTimeout(() => inputRef.current?.focus(), 10);
             }
@@ -884,8 +926,28 @@ const Messages = () => {
 
                     {/* Messages Area */}
                     <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+                        {/* Chat Started Badge */}
+                        <div className="flex flex-col items-center my-4">
+                            <div className="bg-gray-200/50 backdrop-blur-sm text-gray-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest border border-gray-300/30">
+                                Chat Started
+                            </div>
+                        </div>
+
+                        {/* Welcome Message (matching User side) */}
+                        <div className="flex items-end gap-2 self-start max-w-[90%] lg:max-w-[70%]">
+                            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
+                                <MdOutlineSupportAgent className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <div className="bg-white text-gray-800 rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm text-sm leading-relaxed">
+                                    Welcome to Yashfi Foundation. Together, we can build a world where every gesture of kindness creates a ripple of hope. How can we assist you today?
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1 ml-1 font-medium italic">Support Team</p>
+                            </div>
+                        </div>
+
                         {messages.length === 0 && (
-                            <div className="text-center text-gray-400 text-sm my-auto">
+                            <div className="text-center text-gray-400 text-sm py-8">
                                 No messages in this conversation yet. Send a message to start!
                             </div>
                         )}
@@ -980,6 +1042,19 @@ const Messages = () => {
                                 </React.Fragment>
                             );
                         })}
+                        {/* Typing indicator */}
+                        {isTyping && (activeChat?._id || activeChat?.id) && (
+                            <div className="flex items-end gap-2 self-start animate-in fade-in slide-in-from-bottom-2">
+                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                                    {(activeChat.fullname || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="bg-white rounded-2xl rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-1.5 border border-gray-100">
+                                    <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        )}
                         <div ref={bottomRef} className="h-1" />
                     </div>
 
@@ -1057,9 +1132,15 @@ const Messages = () => {
                                         ref={inputRef}
                                         value={input}
                                         onChange={(e) => {
-                                            setInput(e.target.value);
+                                            const val = e.target.value;
+                                            setInput(val);
                                             e.target.style.height = 'auto';
                                             e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                            
+                                            // Emit typing
+                                            if (activeChat && socket) {
+                                                socket.emit('typing', { receiverId: activeChat._id || activeChat.id, receiverRole: 'user' });
+                                            }
                                         }}
                                         onKeyDown={handleKeyDown}
                                         disabled={!!selectedFile || isSending}
