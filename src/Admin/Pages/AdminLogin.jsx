@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { adminSendOtpApi, adminVerifyOtpApi } from '../../Services/adminApi';
 import { AiOutlineUser, AiOutlineArrowRight, AiOutlineSafetyCertificate } from 'react-icons/ai';
 import { useAuth } from '../../Contexts/AuthContext';
+import { COUNTRY_CODES } from '../../Constants/countryCodes';
 
 const AdminLogin = () => {
     const { login } = useAuth();
     const [adminData, setAdminData] = useState({
         email: '',
         phone: '',
+        countryCode: '+91',
         otp: ''
     });
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [otpSent, setOtpSent] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -42,7 +45,7 @@ const AdminLogin = () => {
     const handleResendOtp = async () => {
         if (!canResend) return;
 
-        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone };
+        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone, countryCode: adminData.countryCode };
 
         setLoading(true);
         try {
@@ -107,7 +110,7 @@ const AdminLogin = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone };
+        const payload = adminData.email ? { email: adminData.email } : { phone: adminData.phone, countryCode: adminData.countryCode };
 
         if (!otpSent) {
             // Step 1: Send OTP
@@ -254,10 +257,51 @@ const AdminLogin = () => {
                                         <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${adminData.email ? 'text-gray-300' : 'text-gray-400'}`}>
                                             Phone Number
                                         </label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none flex-row gap-2">
-                                                <AiOutlineUser className={`h-5 w-5 transition-colors ${adminData.email ? 'text-gray-300' : 'text-gray-400 group-focus-within:text-black'}`} />
-                                                <span className={`text-sm font-semibold ${adminData.email ? 'text-gray-400' : 'text-black'}`}>+91</span>
+                                        <div className="flex gap-2">
+                                            <div className={`relative w-[110px] shrink-0 ${adminData.email.length > 0 ? "opacity-50 pointer-events-none" : ""}`}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                                                    className="w-full px-3 py-3 h-[56px] bg-gray-200 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black outline-none transition-all duration-200 flex items-center justify-between gap-1 cursor-pointer"
+                                                >
+                                                    <span className="flex items-center gap-2 text-sm font-semibold text-black">
+                                                        <img 
+                                                            src={COUNTRY_CODES.find(c => c.code === adminData.countryCode)?.flag || COUNTRY_CODES[0].flag} 
+                                                            alt="flag" 
+                                                            className="w-5 h-auto rounded-[2px] shadow-sm"
+                                                        />
+                                                        {adminData.countryCode}
+                                                    </span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-3 h-3 text-gray-500 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                    </svg>
+                                                </button>
+                                                
+                                                {showCountryDropdown && (
+                                                    <>
+                                                        <div className="fixed inset-0 z-40" onClick={() => setShowCountryDropdown(false)} />
+                                                        <div className="absolute top-[60px] left-0 w-[220px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                            <div className="max-h-[200px] overflow-y-auto w-full py-2">
+                                                                {COUNTRY_CODES.map((country) => (
+                                                                    <button
+                                                                        key={country.country}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setAdminData({ ...adminData, countryCode: country.code });
+                                                                            setShowCountryDropdown(false);
+                                                                            setError('');
+                                                                        }}
+                                                                        className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${adminData.countryCode === country.code ? 'bg-gray-50' : ''}`}
+                                                                    >
+                                                                        <img src={country.flag} alt={country.name} className="w-5 h-auto rounded-[2px] shadow-sm" />
+                                                                        <span className="text-sm font-semibold text-black flex-1 text-left">{country.name}</span>
+                                                                        <span className="text-xs font-bold text-gray-500">{country.code}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                             <input
                                                 type="tel"
@@ -268,7 +312,7 @@ const AdminLogin = () => {
                                                     if (val.length <= 10) handleChange({ target: { name: 'phone', value: val } });
                                                 }}
                                                 disabled={adminData.email.length > 0}
-                                                className={`block w-full pl-20 pr-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
+                                                className={`block w-full px-5 py-4 border-2 border-transparent rounded-2xl focus:bg-white focus:border-black focus:ring-0 outline-none transition-all duration-200 text-sm font-semibold text-black ${adminData.email ? 'bg-gray-100 opacity-50 cursor-not-allowed' : 'bg-gray-200'}`}
                                                 placeholder="00000 00000"
                                             />
                                         </div>

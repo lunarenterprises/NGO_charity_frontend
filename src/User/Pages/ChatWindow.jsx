@@ -76,6 +76,8 @@ const ChatWindow = () => {
 
         const connectSocket = () => {
             const newSocket = io(BASE_URL, {
+                path: "/socket.io/",
+                transports: ["websocket"],
                 auth: { token: accessToken }
             });
 

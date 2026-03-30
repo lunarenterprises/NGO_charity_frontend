@@ -26,7 +26,11 @@ const AdminLayout = () => {
         fetchUnread();
 
         if (!accessToken) return;
-        const sock = io(BASE_URL, { auth: { token: accessToken } });
+        const sock = io(BASE_URL, {
+            path: "/socket.io/",
+            transports: ["websocket"],
+            auth: { token: accessToken }
+        });
         sock.on('receive_message', (msg) => {
             if (msg.senderRole === 'user') {
                 setUnreadCount(prev => prev + 1);

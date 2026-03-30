@@ -78,7 +78,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                 </div>
 
                 {/* Desktop Links */}
-                <div className="hidden md:flex items-center space-x-10">
+                <div className="hidden lg:flex items-center space-x-10">
                     <button
                         onClick={() => navigate('/')}
                         className={`relative text-sm font-bold transition-colors duration-300 py-1 ${isActive('/') ? 'text-black' : 'text-gray-500 hover:text-black'} after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-black after:transition-transform after:duration-300 ${isActive('/') ? 'after:scale-x-100' : 'hover:after:scale-x-100'}`}
@@ -144,7 +144,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                 </div>
 
                 {/* Desktop CTA */}
-                <div className="hidden md:flex items-center gap-4">
+                <div className="hidden lg:flex items-center gap-4">
                     <button
                         onClick={onDonationOpen}
                         className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-full hover:bg-gray-900 transition-all duration-300 shadow-md shadow-black/10 hover:shadow-black/20"
@@ -233,7 +233,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
 
                 {/* Mobile Menu Button */}
                 <button
-                    className="p-2 md:hidden text-black"
+                    className="p-2 lg:hidden text-black"
                     onClick={() => setIsMenuOpen(!isMenuOpen)}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -247,11 +247,12 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
             </div>
 
             {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="md:hidden bg-white border-t border-gray-100 py-6 px-6 flex flex-col gap-5 animate-in slide-in-from-top duration-300">
+            <div className={`lg:hidden grid transition-all duration-300 ease-in-out ${isMenuOpen ? 'grid-rows-[1fr] opacity-100 border-t border-gray-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}>
+                <div className="overflow-hidden bg-white shadow-lg shadow-black/5">
+                    <div className="py-6 px-6 flex flex-col gap-5">
                     {/* User Profile in Mobile Menu */}
                     {user && (
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl mb-2 border border-gray-100 font-bold transition-all">
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl mb-2 border border-gray-100 font-bold transition-all md:w-fit md:pr-12">
                             <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white text-lg font-bold shadow-xl shadow-black/10">
                                 {(user.fullname || user.username || user.email || "?").charAt(0).toUpperCase()}
                             </div>
@@ -330,7 +331,7 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full py-4 bg-transparent text-red-500 font-bold rounded-full border-2 border-red-500 transition-colors hover:bg-red-50"
+                                    className="w-full py-4 bg-transparent text-red-500 font-bold rounded-full border-2 border-red-500 transition-colors hover:bg-red-50 md:w-72 md:mx-auto"
                                 >
                                     Logout Account
                                 </button>
@@ -338,20 +339,21 @@ const Navbar = ({ onQuickDonationOpen, onDonationOpen }) => {
                         ) : (
                             <button
                                 onClick={() => { setIsLoginPopupOpen(true); setIsMenuOpen(false); }}
-                                className="w-full py-4 bg-transparent text-black font-bold rounded-full border-2 border-black hover:bg-black hover:text-white transition-all"
+                                className="w-full py-4 bg-transparent text-black font-bold rounded-full border-2 border-black hover:bg-black hover:text-white transition-all md:w-72 md:mx-auto"
                             >
                                 Login
                             </button>
                         )}
                         <button
                             onClick={() => { onDonationOpen(); setIsMenuOpen(false); }}
-                            className="w-full py-4 bg-black text-white font-bold rounded-2xl shadow-lg"
+                            className="w-full py-4 bg-black text-white font-bold rounded-full shadow-lg md:w-72 md:mx-auto"
                         >
                             Donate Now
                         </button>
                     </div>
+                    </div>
                 </div>
-            )}
+            </div>
             {isLoginPopupOpen && <LoginPopup onClose={() => setIsLoginPopupOpen(false)} />}
         </nav>
     );
