@@ -11,7 +11,7 @@ import { getChatUsersApi, getChatHistoryAdminApi, uploadChatFileAdminApi, markCh
 import MediaModal from '../../Components/MediaModal';
 
 const Messages = () => {
-    const { adminAccessToken: accessToken, adminStatus: adminData } = useContext(AuthContext);
+    const { adminAccessToken: accessToken, adminRefreshToken: refreshToken, adminStatus: adminData, logout } = useContext(AuthContext);
     const [conversations, setConversations] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -54,19 +54,24 @@ const Messages = () => {
         }
     };
 
-    const { logout } = useContext(AuthContext);
-
     // Auth check on mount
     useEffect(() => {
         const checkAuth = async () => {
-             if (!accessToken || isTokenExpired(accessToken)) {
+             // If completely missing tokens, just redirect without alert
+             if (!accessToken || !refreshToken) {
+                 navigate("/admin/login");
+                 return;
+             }
+
+             // Only alert if the session cannot be recovered (refresh token expired)
+             if (isTokenExpired(refreshToken)) {
                  await Swal.fire("Session Expired", "Please login again to access the admin portal.", "warning");
                  logout();
                  navigate("/admin/login");
              }
         };
         checkAuth();
-    }, [accessToken, navigate, logout]);
+    }, [accessToken, refreshToken, navigate, logout]);
 
     const formatPlaybackTime = (time) => {
         if (!time) return "0:00";
@@ -281,14 +286,20 @@ const Messages = () => {
     }, [messages, isTyping]);
 
     const formatChatDate = (date) => {
+        if (!date) return "Today";
         const d = new Date(date);
+        if (isNaN(d.getTime())) return "Today";
+
         const now = new Date();
-        const diff = now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        
+        const diff = today.getTime() - target.getTime();
         const oneDay = 24 * 60 * 60 * 1000;
 
         if (diff === 0) return "Today";
         if (diff === oneDay) return "Yesterday";
-        if (diff < 7 * oneDay) {
+        if (diff < 7 * oneDay && diff > 0) {
             return d.toLocaleDateString('en-US', { weekday: 'long' });
         }
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -324,7 +335,7 @@ const Messages = () => {
             if (result.isConfirmed) {
                 const response = await deleteChatMessageAdminApi(messageId);
 
-                if (response?.data?.success) {
+                if (response?.data?.status === "success" || response?.data?.success) {
                     // Optimized state update: Remove the message from local state
                     setMessages(prev => prev.filter(m => m.id !== messageId && m._id !== messageId));
                 }
@@ -951,9 +962,9 @@ const Messages = () => {
                                 No messages in this conversation yet. Send a message to start!
                             </div>
                         )}
-                        {messages.filter(msg => !msg.isDeleted).map((msg, index) => {
+                        {messages.filter(msg => !msg.isDeleted).map((msg, index, filteredArray) => {
                             const msgDate = formatChatDate(msg.createdAt);
-                            const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
+                            const prevMsgDate = index > 0 ? formatChatDate(filteredArray[index - 1].createdAt) : null;
                             const showSeparator = msgDate !== prevMsgDate;
 
                             return (
@@ -1013,7 +1024,7 @@ const Messages = () => {
                                                                 e.stopPropagation();
                                                                 setActiveActionMenu(msg);
                                                             }}
-                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                            className="p-1.5 text-gray-400 hover:text-gray-600 transition-all"
                                                             title="Message actions"
                                                         >
                                                             <IoEllipsisVertical className="w-4 h-4" />

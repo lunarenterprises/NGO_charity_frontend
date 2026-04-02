@@ -103,6 +103,7 @@ export const AuthProvider = ({ children }) => {
             // Admin-side exports
             adminStatus: adminAuth.user,
             adminAccessToken: adminAuth.accessToken,
+            adminRefreshToken: adminAuth.refreshToken,
             isAdminAuthenticated: !!adminAuth.accessToken,
             
             login,

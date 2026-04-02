@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom';
 import { IoClose } from 'react-icons/io5';
 import { FaHandsHelping } from 'react-icons/fa';
 import { createProjectDonationOrderApi, verifyProjectDonationPaymentApi } from '../../Services/userApi';
-import { showToast } from '../../Utils/alert';
+import { showToast, showAlert } from '../../Utils/alert';
 import { useAuth } from '../../Contexts/AuthContext';
 
 const ProjectDonationModal = ({ isOpen, onClose, project }) => {
@@ -38,6 +38,20 @@ const ProjectDonationModal = ({ isOpen, onClose, project }) => {
 
         if (!numAmount || numAmount <= 0) {
             showToast("error", "Please enter a valid amount");
+            return;
+        }
+
+        // Check if amount exceeds remaining needed amount
+        const targetAmount = parseFloat(project.targetAmount || 0);
+        const currentAmount = parseFloat(project.currentAmount || 0);
+        const remainingAmount = targetAmount - currentAmount;
+
+        if (numAmount > remainingAmount) {
+            showAlert(
+                "Donation Limit",
+                `The maximum donation allowed for this project is ₹${remainingAmount.toLocaleString('en-IN')}. This project only needs ₹${remainingAmount.toLocaleString('en-IN')} more to reach its goal.`,
+                "warning"
+            );
             return;
         }
 

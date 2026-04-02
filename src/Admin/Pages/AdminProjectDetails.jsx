@@ -151,7 +151,7 @@ const AdminProjectDetails = () => {
 
     const formatAmount = (val) => {
         const num = parseFloat(val) || 0;
-        return `₹${num.toLocaleString('en-IN')}`;
+        return `Rs. ${num.toLocaleString('en-IN')}`;
     };
 
     const progressPercent = () => {
@@ -219,8 +219,8 @@ const AdminProjectDetails = () => {
 
             const stats = [
                 ['Total Donors', allDonors.length],
-                ['Total Raised', `₹${raised.toLocaleString('en-IN')}`],
-                ['Target Amount', `₹${target.toLocaleString('en-IN')}`],
+                ['Total Raised', `Rs. ${raised.toLocaleString('en-IN')}`],
+                ['Target Amount', `Rs. ${target.toLocaleString('en-IN')}`],
                 ['Progress', `${progress}%`],
             ];
 
@@ -244,7 +244,7 @@ const AdminProjectDetails = () => {
                 i + 1,
                 donor.donorName || donor.name || donor.User?.fullname || 'Anonymous',
                 donor.donorPhone || donor.phone || donor.user?.phone || donor.User?.phone || 'N/A',
-                `₹${Number(donor.amount || 0).toLocaleString('en-IN')}`,
+                `Rs. ${Number(donor.amount || 0).toLocaleString('en-IN')}`,
             ]);
 
             autoTable(doc, {
@@ -255,10 +255,10 @@ const AdminProjectDetails = () => {
                 headStyles: { fillColor: [0, 0, 0], textColor: 255, fontStyle: 'bold', fontSize: 10 },
                 bodyStyles: { fontSize: 9 },
                 columnStyles: {
-                    0: { cellWidth: 15 },
-                    1: { cellWidth: 80 },
+                    0: { cellWidth: 12 },
+                    1: { cellWidth: 85 },
                     2: { cellWidth: 50 },
-                    3: { cellWidth: 40, halign: 'right', charSpace: -0.2 },
+                    3: { cellWidth: 35, halign: 'right' },
                 },
                 margin: { left: 14, right: 14 }
             });
@@ -271,7 +271,7 @@ const AdminProjectDetails = () => {
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.text('GRAND TOTAL', 18, finalY + 6.5);
-            doc.text(`₹${grandTotal.toLocaleString('en-IN')}`, pageWidth - 18, finalY + 6.5, { align: 'right' });
+            doc.text(`Rs. ${grandTotal.toLocaleString('en-IN')}`, pageWidth - 18, finalY + 6.5, { align: 'right' });
 
             doc.save(`${project?.name?.replace(/\s+/g, '_') || 'project'}_revenue_report.pdf`);
         } catch (err) {
@@ -755,11 +755,15 @@ const AdminProjectDetails = () => {
                                 </div>
 
                                 {/* Target Amount */}
-                                <div className="space-y-1.5">
+                                <div className="space-y-1.5 relative group">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 block px-1">Target Amount (₹)</label>
                                     <input required name="targetAmount" value={formData.targetAmount} onChange={handleFormChange}
                                         type="number" min="1" placeholder="e.g. 500000"
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-black transition-all" />
+                                        disabled
+                                        className="w-full bg-gray-100 border border-gray-200 rounded-lg px-4 py-3 text-sm focus:outline-none cursor-not-allowed opacity-70 transition-all font-bold text-gray-600" />
+                                    <div className="absolute right-3 top-[34px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                        <span className="bg-black text-white text-[8px] font-bold px-2 py-1 rounded uppercase tracking-tighter">Read Only</span>
+                                    </div>
                                 </div>
 
                                 {/* Media Uploads */}

@@ -13,7 +13,7 @@ import Swal from 'sweetalert2';
 
 const ChatWindow = () => {
     const navigate = useNavigate();
-    const { user, accessToken, logout } = useAuth();
+    const { user, accessToken, refreshToken, logout } = useAuth();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -61,14 +61,21 @@ const ChatWindow = () => {
     // Auth check on mount
     useEffect(() => {
         const checkAuth = async () => {
-             if (!accessToken || isTokenExpired(accessToken)) {
+             // If completely missing tokens, just redirect without alert
+             if (!accessToken || !refreshToken) {
+                 navigate("/", { state: { openLogin: true } });
+                 return;
+             }
+
+             // Only alert if the session cannot be recovered (refresh token expired)
+             if (isTokenExpired(refreshToken)) {
                  await showAlert("Session Expired", "Please login again to access the chat.", "warning");
                  logout('user');
                  navigate("/", { state: { openLogin: true } });
              }
         };
         checkAuth();
-    }, [accessToken, navigate]);
+    }, [accessToken, refreshToken, navigate]);
 
     // Socket Initialization and History
     useEffect(() => {
@@ -175,14 +182,20 @@ const ChatWindow = () => {
     }, []);
 
     const formatChatDate = (date) => {
+        if (!date) return "Today";
         const d = new Date(date);
+        if (isNaN(d.getTime())) return "Today";
+
         const now = new Date();
-        const diff = now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        
+        const diff = today.getTime() - target.getTime();
         const oneDay = 24 * 60 * 60 * 1000;
 
         if (diff === 0) return "Today";
         if (diff === oneDay) return "Yesterday";
-        if (diff < 7 * oneDay) {
+        if (diff < 7 * oneDay && diff > 0) {
             return d.toLocaleDateString('en-US', { weekday: 'long' });
         }
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -218,9 +231,9 @@ const ChatWindow = () => {
             if (result.isConfirmed) {
                 const response = await deleteChatMessageUserApi(messageId);
 
-                if (response?.data?.success) {
+                if (response?.data?.status === "success" || response?.data?.success) {
                     // Optimized state update: Remove the message from local state
-                    setMessages(prev => prev.filter(m => m._id !== messageId && m._id !== messageId));
+                    setMessages(prev => prev.filter(m => m._id !== messageId && m.id !== messageId));
                 }
             }
         } catch (err) {
@@ -625,9 +638,9 @@ const ChatWindow = () => {
                     </div>
                 </div>
 
-                {messages.filter(msg => !msg.isDeleted).map((msg, index) => {
+                {messages.filter(msg => !msg.isDeleted).map((msg, index, filteredArray) => {
                     const msgDate = formatChatDate(msg.createdAt);
-                    const prevMsgDate = index > 0 ? formatChatDate(messages[index - 1].createdAt) : null;
+                    const prevMsgDate = index > 0 ? formatChatDate(filteredArray[index - 1].createdAt) : null;
                     const showSeparator = msgDate !== prevMsgDate;
 
                     return (
@@ -663,12 +676,12 @@ const ChatWindow = () => {
                             ) : (
                                 /* ── Sent (RIGHT) ── */
                                 <div className="flex items-end gap-2 self-end max-w-[80%] lg:max-w-[40%] flex-row-reverse group">
-                                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0 overflow-hidden shadow-sm border border-white">
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center shrink-0 overflow-hidden shadow-sm border border-white">
                                         {user?.profilePic ? (
                                             <img src={user.profilePic} alt="You" className="w-full h-full object-cover" />
                                         ) : (
                                             <span className="text-xs font-bold text-gray-600">
-                                                {user?.fullname?.[0]?.toUpperCase() || 'U'}
+                                                {user?.fullname?.[0]?.toUpperCase() || user?.name?.[0]?.toUpperCase() || 'U'}
                                             </span>
                                         )}
                                     </div>
@@ -687,7 +700,7 @@ const ChatWindow = () => {
                                                         e.stopPropagation();
                                                         setActiveActionMenu(msg);
                                                     }}
-                                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-all opacity-0 group-hover:opacity-100"
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-all"
                                                     title="Message actions"
                                                 >
                                                     <IoEllipsisVertical className="w-4 h-4" />
