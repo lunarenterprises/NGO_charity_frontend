@@ -27,7 +27,8 @@ const Messages = () => {
     const [currentTime, setCurrentTime] = useState(0);
     const [socket, setSocket] = useState(null);
     const [isSending, setIsSending] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
+    const [typingUsers, setTypingUsers] = useState(new Set());
+    const typingTimeoutsRef = useRef({});
     const [previewMedia, setPreviewMedia] = useState({ isOpen: false, url: '', type: '', name: '' });
     const [activeActionMenu, setActiveActionMenu] = useState(null); // stores messageId
     const bottomRef = useRef(null);
@@ -36,7 +37,6 @@ const Messages = () => {
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimeRef = useRef(0);
-    const typingTimeoutRef = useRef(null);
     const navigate = useNavigate();
 
     const isTokenExpired = (token) => {
@@ -138,7 +138,27 @@ const Messages = () => {
 
         // Handle receiving messages
         newSocket.on('receive_message', (msg) => {
-            setMessages(prev => [...prev, msg]);
+            const currentActiveId = (activeChat?._id || activeChat?.id);
+            const isRelevant = (msg.senderRole === 'user' && msg.senderId === currentActiveId) || 
+                               (msg.senderRole === 'admin' && msg.receiverId === currentActiveId);
+
+            if (isRelevant) {
+                setMessages(prev => [...prev, msg]);
+            }
+            
+            // Clear typing status when message arrives
+            if (msg.senderRole === 'user') {
+                const sId = msg.senderId.toString();
+                setTypingUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(sId);
+                    return next;
+                });
+                if (typingTimeoutsRef.current[sId]) {
+                    clearTimeout(typingTimeoutsRef.current[sId]);
+                    delete typingTimeoutsRef.current[sId];
+                }
+            }
             
             // Mark as read on backend if it's the active chat
             if (msg.senderRole === 'user' && activeChat && (activeChat._id || activeChat.id) === msg.senderId) {
@@ -207,10 +227,24 @@ const Messages = () => {
             }));
         });
 
-        newSocket.on('user_typing', () => {
-            setIsTyping(true);
-            clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+        newSocket.on('user_typing', ({ senderId, role }) => {
+            if (role === 'user' && senderId) {
+                const sId = senderId.toString();
+                setTypingUsers(prev => new Set(prev).add(sId));
+
+                if (typingTimeoutsRef.current[sId]) {
+                    clearTimeout(typingTimeoutsRef.current[sId]);
+                }
+
+                typingTimeoutsRef.current[sId] = setTimeout(() => {
+                    setTypingUsers(prev => {
+                        const next = new Set(prev);
+                        next.delete(sId);
+                        return next;
+                    });
+                    delete typingTimeoutsRef.current[sId];
+                }, 3000);
+            }
         });
 
         setSocket(newSocket);
@@ -848,11 +882,13 @@ const Messages = () => {
                                         {chat.time || (chat.updatedAt ? new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center gap-2 overflow-hidden w-full">
+                                 <div className="flex justify-between items-center gap-2 overflow-hidden w-full">
                                     <div className={`text-xs truncate flex items-center gap-1 min-w-0 ${
                                         (activeChat?._id || activeChat?.id) === (chat._id || chat.id) ? 'text-gray-300' : 'text-gray-500'
                                     } ${chat.unread > 0 && (activeChat?._id || activeChat?.id) !== (chat._id || chat.id) ? 'font-semibold text-black' : ''}`}>
-                                        {chat.lastMessageType === 'image' || chat.lastMessage === 'Image' ? (
+                                        {typingUsers.has((chat._id || chat.id)?.toString()) ? (
+                                            <span className="text-green-500 font-medium animate-pulse">Typing...</span>
+                                        ) : chat.lastMessageType === 'image' || chat.lastMessage === 'Image' ? (
                                             <div className="flex items-center gap-1.5 py-0.5">
                                                 <PiImageSquareBold className="w-4 h-4 shrink-0 text-green-500" />
                                                 <span className="truncate text-green-500 font-medium">Image</span>
@@ -1045,7 +1081,7 @@ const Messages = () => {
                             );
                         })}
                         {/* Typing indicator */}
-                        {isTyping && (activeChat?._id || activeChat?.id) && (
+                        {typingUsers.has((activeChat?._id || activeChat?.id)?.toString()) && (
                             <div className="flex items-end gap-2 self-start animate-in fade-in slide-in-from-bottom-2">
                                 <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                                     {(activeChat.fullname || 'U').charAt(0).toUpperCase()}
