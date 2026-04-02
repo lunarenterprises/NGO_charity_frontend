@@ -317,7 +317,7 @@ const Messages = () => {
     // Scroll to bottom when new messages are added
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping]);
+    }, [messages, typingUsers]);
 
     const formatChatDate = (date) => {
         if (!date) return "Today";
