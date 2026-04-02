@@ -205,15 +205,6 @@ const ChatWindow = () => {
         if (!content) return;
         navigator.clipboard.writeText(content);
         setActiveActionMenu(null);
-        Swal.fire({
-            title: 'Copied!',
-            text: 'Message copied to clipboard.',
-            icon: 'success',
-            timer: 1000,
-            showConfirmButton: false,
-            toast: true,
-            position: 'top-end'
-        });
     };
 
     const handleDeleteMessage = async (messageId) => {
